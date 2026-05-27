@@ -1,115 +1,79 @@
 <!DOCTYPE html>
-<html lang="de">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Produktdaten - BT Box</title>
+  <title>Produktdaten</title>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      background-color: #f4f6f8;
-    }
+  const firebaseConfig = {
+    apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+    authDomain: "i40-btbox.firebaseapp.com",
+    projectId: "i40-btbox",
+  };
 
-    h1 {
-      color: #2c3e50;
-    }
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    .card {
-      background: white;
-      padding: 20px;
-      margin-top: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .section {
-      margin-bottom: 15px;
-    }
-
-    .label {
-      font-weight: bold;
-      color: #34495e;
-    }
-
-    .error {
-      color: red;
-      font-weight: bold;
-    }
-  </style>
+  window.db = db;
+  window.doc = doc;
+  window.getDoc = getDoc;
+  window.updateDoc = updateDoc;
+  </script>
 </head>
-
 <body>
 
 <h1>Produktdaten</h1>
-
-<div id="content" class="card">
-  Lade Daten...
-</div>
+<div id="content"></div>
 
 <script>
 async function loadData() {
 
-  // 👉 URL-Parameter auslesen (?id=id001)
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id") || "id001";
 
   const contentDiv = document.getElementById("content");
 
   try {
-    // 👉 JSON laden
-    const response = await fetch(`data/${id}.json`);
+    const ref = window.doc(window.db, "products", id);
+    const snap = await window.getDoc(ref);
 
-    if (!response.ok) {
+    if (!snap.exists()) {
       throw new Error("Produkt nicht gefunden");
     }
 
-    const data = await response.json();
+    const data = snap.data();
 
-    // 👉 HTML erzeugen
     contentDiv.innerHTML = `
-      <div class="section">
-        <span class="label">Produkt-ID:</span> ${data.product_id}
-      </div>
+      <p><b>ID:</b> ${data.product_id}</p>
+      <p><b>Version:</b> ${data.version}</p>
 
-      <div class="section">
-        <span class="label">Version:</span> ${data.version}
-      </div>
+      <p><b>Qualität:</b></p>
+      <select id="statusSelect">
+        <option value="bestanden" ${data.quality_status === "bestanden" ? "selected" : ""}>bestanden</option>
+        <option value="nicht bestanden" ${data.quality_status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
+      </select>
 
-      <div class="section">
-        <span class="label">Fertigung:</span><br>
-        3D-Druck: ${data.manufacturing["3d_print"].material}, ${data.manufacturing["3d_print"].layer_height}<br>
-        CNC: ${data.manufacturing.cnc.material} (${data.manufacturing.cnc.component})
-      </div>
-
-      <div class="section">
-        <span class="label">Qualität:</span><br>
-        Status: ${data.quality.status}<br>
-        Datum: ${data.quality.date}
-      </div>
-
-      <div class="section">
-        <span class="label">CAD-Link:</span><br>
-        <a href="${data.link.cad}" target="_blank">Modell öffnen</a>
-      </div>
+      <button onclick="saveStatus('${id}')">Speichern</button>
     `;
 
   } catch (error) {
-
-    // 👉 Fehleranzeige
-    contentDiv.innerHTML = `
-      <p class="error">Fehler beim Laden der Daten</p>
-      <p>${error.message}</p>
-      <p>Prüfe:</p>
-      <ul>
-        <li>Existiert die Datei: data/${id}.json?</li>
-        <li>Ist die URL korrekt?</li>
-      </ul>
-    `;
+    contentDiv.innerHTML = `<p>${error.message}</p>`;
   }
 }
 
-// 👉 Start
+async function saveStatus(id) {
+  const status = document.getElementById("statusSelect").value;
+
+  const ref = window.doc(window.db, "products", id);
+
+  await window.updateDoc(ref, {
+    quality_status: status
+  });
+
+  alert("Status in Cloud gespeichert!");
+}
+
 loadData();
 </script>
 
