@@ -46,36 +46,21 @@
 
   <!-- 🔥 Firebase -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
-      authDomain: "i40-btbox.firebaseapp.com",
-      projectId: "i40-btbox",
-    };
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+const firebaseConfig = {
+  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+  authDomain: "i40-btbox.firebaseapp.com",
+  projectId: "i40-btbox",
+};
 
-    // global verfügbar machen
-    window.db = db;
-    window.doc = doc;
-    window.getDoc = getDoc;
-    window.updateDoc = updateDoc;
-  </script>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-</head>
 
-<body>
-
-<h1>Produktdaten</h1>
-
-<div id="content" class="card">
-  Lade Daten...
-</div>
-
-<script>
+// 🔧 ALLES jetzt hier drin!
 
 async function loadData() {
 
@@ -85,8 +70,8 @@ async function loadData() {
   const contentDiv = document.getElementById("content");
 
   try {
-    const ref = window.doc(window.db, "products", id);
-    const snap = await window.getDoc(ref);
+    const ref = doc(db, "products", id);
+    const snap = await getDoc(ref);
 
     if (!snap.exists()) {
       throw new Error("Produkt nicht gefunden");
@@ -94,62 +79,52 @@ async function loadData() {
 
     const data = snap.data();
 
-    // Fallbacks (robust!)
     const productId = data.product_id || "unbekannt";
     const version = data.version || "unbekannt";
     const status = data.quality_status || "unbekannt";
 
     contentDiv.innerHTML = `
-      <div class="section">
-        <span class="label">Produkt-ID:</span> ${productId}
-      </div>
+      <p><b>ID:</b> ${productId}</p>
+      <p><b>Version:</b> ${version}</p>
 
-      <div class="section">
-        <span class="label">Version:</span> ${version}
-      </div>
+      <p><b>Qualität:</b></p>
+      <select id="statusSelect">
+        <option value="bestanden" ${status === "bestanden" ? "selected" : ""}>bestanden</option>
+        <option value="nicht bestanden" ${status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
+      </select>
 
-      <div class="section">
-        <span class="label">Qualität:</span><br>
-
-        <select id="statusSelect">
-          <option value="bestanden" ${status === "bestanden" ? "selected" : ""}>bestanden</option>
-          <option value="nicht bestanden" ${status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
-        </select>
-
-        <br>
-        <button onclick="saveStatus('${id}')">Speichern</button>
-      </div>
+      <br>
+      <button id="saveBtn">Speichern</button>
     `;
+
+    // 👉 EventListener statt onclick (sauberer!)
+    document.getElementById("saveBtn").addEventListener("click", async () => {
+      await saveStatus(id);
+    });
 
   } catch (error) {
-
-    contentDiv.innerHTML = `
-      <p class="error">Fehler beim Laden</p>
-      <p>${error.message}</p>
-    `;
+    contentDiv.innerHTML = `<p style="color:red">${error.message}</p>`;
   }
 }
 
 
-// 🔧 Speichern in Firebase
 async function saveStatus(id) {
 
   const status = document.getElementById("statusSelect").value;
 
   try {
-    const ref = window.doc(window.db, "products", id);
+    const ref = doc(db, "products", id);
 
-    await window.updateDoc(ref, {
+    await updateDoc(ref, {
       quality_status: status
     });
 
-    alert("Status erfolgreich in Cloud gespeichert!");
+    alert("Status gespeichert!");
 
-    // 🔥 UI neu laden → sofort sichtbar
-    loadData();
+    loadData(); // neu laden
 
   } catch (error) {
-    alert("Fehler beim Speichern: " + error.message);
+    alert("Fehler: " + error.message);
   }
 }
 
