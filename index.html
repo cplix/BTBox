@@ -2,135 +2,90 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Produktdaten - BT Box</title>
+  <title>Produktdaten</title>
+</head>
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      background-color: #f4f6f8;
-    }
+<body>
 
-    h1 {
-      color: #2c3e50;
-    }
+<h1>Produktdaten</h1>
+<div id="content">Starte...</div>
 
-    .card {
-      background: white;
-      padding: 20px;
-      margin-top: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    .section {
-      margin-bottom: 15px;
-    }
-
-    .label {
-      font-weight: bold;
-      color: #34495e;
-    }
-
-    button {
-      margin-top: 10px;
-      padding: 6px 12px;
-      cursor: pointer;
-    }
-
-    .error {
-      color: red;
-      font-weight: bold;
-    }
-  </style>
-
-  <!-- 🔥 Firebase -->
-  <script type="module">
+<script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
-  authDomain: "i40-btbox.firebaseapp.com",
-  projectId: "i40-btbox",
-};
+const contentDiv = document.getElementById("content");
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+try {
 
+  const firebaseConfig = {
+    apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+    authDomain: "i40-btbox.firebaseapp.com",
+    projectId: "i40-btbox",
+  };
 
-// 🔧 ALLES jetzt hier drin!
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-async function loadData() {
+  async function loadData() {
 
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id") || "id001";
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id") || "id001";
 
-  const contentDiv = document.getElementById("content");
+    try {
+      const ref = doc(db, "products", id);
+      const snap = await getDoc(ref);
 
-  try {
-    const ref = doc(db, "products", id);
-    const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        contentDiv.innerHTML = "❌ Produkt nicht gefunden";
+        return;
+      }
 
-    if (!snap.exists()) {
-      throw new Error("Produkt nicht gefunden");
+      const data = snap.data();
+
+      contentDiv.innerHTML = `
+        <p><b>ID:</b> ${data.product_id}</p>
+        <p><b>Version:</b> ${data.version}</p>
+
+        <p><b>Status:</b></p>
+        <select id="statusSelect">
+          <option value="bestanden" ${data.quality_status === "bestanden" ? "selected" : ""}>bestanden</option>
+          <option value="nicht bestanden" ${data.quality_status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
+        </select>
+
+        <br><br>
+        <button id="saveBtn">Speichern</button>
+      `;
+
+      document.getElementById("saveBtn").addEventListener("click", async () => {
+
+        const status = document.getElementById("statusSelect").value;
+
+        try {
+          await updateDoc(ref, {
+            quality_status: status
+          });
+
+          alert("✔ Gespeichert");
+          loadData();
+
+        } catch (err) {
+          contentDiv.innerHTML = "❌ Fehler beim Speichern: " + err.message;
+        }
+
+      });
+
+    } catch (err) {
+      contentDiv.innerHTML = "❌ Fehler beim Laden: " + err.message;
     }
-
-    const data = snap.data();
-
-    const productId = data.product_id || "unbekannt";
-    const version = data.version || "unbekannt";
-    const status = data.quality_status || "unbekannt";
-
-    contentDiv.innerHTML = `
-      <p><b>ID:</b> ${productId}</p>
-      <p><b>Version:</b> ${version}</p>
-
-      <p><b>Qualität:</b></p>
-      <select id="statusSelect">
-        <option value="bestanden" ${status === "bestanden" ? "selected" : ""}>bestanden</option>
-        <option value="nicht bestanden" ${status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
-      </select>
-
-      <br>
-      <button id="saveBtn">Speichern</button>
-    `;
-
-    // 👉 EventListener statt onclick (sauberer!)
-    document.getElementById("saveBtn").addEventListener("click", async () => {
-      await saveStatus(id);
-    });
-
-  } catch (error) {
-    contentDiv.innerHTML = `<p style="color:red">${error.message}</p>`;
   }
+
+  loadData();
+
+} catch (err) {
+  contentDiv.innerHTML = "❌ Firebase Fehler: " + err.message;
 }
-
-
-async function saveStatus(id) {
-
-  const status = document.getElementById("statusSelect").value;
-
-  try {
-    const ref = doc(db, "products", id);
-
-    await updateDoc(ref, {
-      quality_status: status
-    });
-
-    alert("Status gespeichert!");
-
-    loadData(); // neu laden
-
-  } catch (error) {
-    alert("Fehler: " + error.message);
-  }
-}
-
-
-// Start
-loadData();
 
 </script>
 
