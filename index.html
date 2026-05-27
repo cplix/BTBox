@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Produktdaten - BT Box</title>
 
-  <!-- Firebase (klassisch & stabil) -->
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
@@ -33,29 +33,26 @@
 
     .label {
       font-weight: bold;
-      color: #34495e;
     }
 
     .status {
       font-weight: bold;
       padding: 4px 8px;
       border-radius: 5px;
+      color: white;
     }
 
     .ok {
-      color: white;
       background-color: green;
     }
 
     .fail {
-      color: white;
       background-color: red;
     }
 
-    button {
-      margin-top: 10px;
-      padding: 6px 12px;
-      cursor: pointer;
+    .live {
+      font-size: 0.9em;
+      color: #666;
     }
   </style>
 
@@ -64,8 +61,7 @@
 <body>
 
 <h1>Produktdaten</h1>
-
-<div id="content" class="card">Lade Daten...</div>
+<div id="content" class="card">Verbinde mit Cloud...</div>
 
 <script>
 
@@ -75,99 +71,88 @@ const firebaseConfig = {
   projectId: "i40-btbox",
 };
 
-// Initialisieren
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id") || "id001";
 
-async function loadData() {
+const contentDiv = document.getElementById("content");
 
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id") || "id001";
+// 🔥 Realtime Listener
+db.collection("products").doc(id).onSnapshot((docSnap) => {
 
-  const contentDiv = document.getElementById("content");
-
-  try {
-
-    const docRef = db.collection("products").doc(id);
-    const docSnap = await docRef.get();
-
-    if (!docSnap.exists) {
-      contentDiv.innerHTML = "❌ Produkt nicht gefunden";
-      return;
-    }
-
-    const data = docSnap.data();
-
-    const status = data.quality_status || "unbekannt";
-
-    const statusClass =
-      status === "bestanden" ? "ok" :
-      status === "nicht bestanden" ? "fail" : "";
-
-    contentDiv.innerHTML = `
-      <div class="section">
-        <span class="label">Produkt-ID:</span> ${data.product_id}
-      </div>
-
-      <div class="section">
-        <span class="label">Version:</span> ${data.version}
-      </div>
-
-      <div class="section">
-        <span class="label">Aktueller Status:</span><br>
-        <span class="status ${statusClass}">
-          ${status}
-        </span>
-      </div>
-
-      <div class="section">
-        <span class="label">Status ändern:</span><br>
-
-        <select id="statusSelect">
-          <option value="bestanden" ${status === "bestanden" ? "selected" : ""}>bestanden</option>
-          <option value="nicht bestanden" ${status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
-        </select>
-
-        <br>
-        <button onclick="saveStatus('${id}')">Speichern</button>
-      </div>
-
-      <div class="section">
-        <span class="label">Letzte Änderung:</span><br>
-        ${data.last_update || "keine Angabe"}
-      </div>
-    `;
-
-  } catch (error) {
-    contentDiv.innerHTML = "❌ Fehler: " + error.message;
+  if (!docSnap.exists) {
+    contentDiv.innerHTML = "❌ Produkt nicht gefunden";
+    return;
   }
-}
+
+  const data = docSnap.data();
+
+  const status = data.quality_status || "unbekannt";
+
+  const statusClass =
+    status === "bestanden" ? "ok" :
+    status === "nicht bestanden" ? "fail" : "";
+
+  contentDiv.innerHTML = `
+    <div class="section">
+      <span class="label">Produkt-ID:</span> ${data.product_id}
+    </div>
+
+    <div class="section">
+      <span class="label">Version:</span> ${data.version}
+    </div>
+
+    <div class="section">
+      <span class="label">Status:</span><br>
+      <span class="status ${statusClass}">
+        ${status}
+      </span>
+    </div>
+
+    <div class="section">
+      <span class="label">Status ändern:</span><br>
+
+      <select id="statusSelect">
+        <option value="bestanden" ${status === "bestanden" ? "selected" : ""}>bestanden</option>
+        <option value="nicht bestanden" ${status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
+      </select>
+
+      <br>
+      <button onclick="saveStatus()">Speichern</button>
+    </div>
+
+    <div class="section">
+      <span class="label">Letzte Änderung:</span><br>
+      ${data.last_update || "-"}
+    </div>
+
+    <div class="live">
+      🔴 Live-Verbindung aktiv
+    </div>
+  `;
+
+});
 
 
-// 🔧 Speichern inkl. Zeitstempel
-async function saveStatus(id) {
+// 🔧 Speichern
+async function saveStatus() {
 
   const status = document.getElementById("statusSelect").value;
 
   try {
-
     await db.collection("products").doc(id).update({
       quality_status: status,
       last_update: new Date().toLocaleString()
     });
 
-    alert("✔ Status gespeichert");
-
-    loadData(); // neu laden → sofort sichtbar
+    // ❗ KEIN loadData() mehr nötig → Realtime übernimmt
 
   } catch (error) {
     alert("❌ Fehler: " + error.message);
   }
 }
-
-
-loadData();
 
 </script>
 
