@@ -1,13 +1,90 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Produktdaten</title>
+
+  <!-- Firebase (klassisch) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+
 <body>
 
-<h1>Test</h1>
-<div id="content">Start...</div>
+<h1>Produktdaten</h1>
+<div id="content">Lade...</div>
 
-<script type="module">
+<script>
 
-document.getElementById("content").innerText = "Script läuft";
+const firebaseConfig = {
+  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+  authDomain: "i40-btbox.firebaseapp.com",
+  projectId: "i40-btbox",
+};
+
+// Initialisieren
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+
+async function loadData() {
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id") || "id001";
+
+  const contentDiv = document.getElementById("content");
+
+  try {
+
+    const docRef = db.collection("products").doc(id);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      contentDiv.innerHTML = "❌ Produkt nicht gefunden";
+      return;
+    }
+
+    const data = docSnap.data();
+
+    contentDiv.innerHTML = `
+      <p><b>ID:</b> ${data.product_id}</p>
+      <p><b>Version:</b> ${data.version}</p>
+
+      <p><b>Status:</b></p>
+      <select id="statusSelect">
+        <option value="bestanden" ${data.quality_status === "bestanden" ? "selected" : ""}>bestanden</option>
+        <option value="nicht bestanden" ${data.quality_status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
+      </select>
+
+      <br><br>
+      <button onclick="saveStatus('${id}')">Speichern</button>
+    `;
+
+  } catch (error) {
+    contentDiv.innerHTML = "❌ Fehler: " + error.message;
+  }
+}
+
+
+async function saveStatus(id) {
+
+  const status = document.getElementById("statusSelect").value;
+
+  try {
+
+    await db.collection("products").doc(id).update({
+      quality_status: status
+    });
+
+    alert("✔ Gespeichert");
+    loadData();
+
+  } catch (error) {
+    alert("❌ Fehler: " + error.message);
+  }
+}
+
+
+loadData();
 
 </script>
 
