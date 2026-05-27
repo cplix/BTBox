@@ -1,1 +1,21 @@
-
+{
+  "product_id": "SPK-0001",
+  "version": "V1.2",
+  "manufacturing": {
+    "3d_print": {
+      "material": "PLA",
+      "layer_height": "0.2 mm"
+    },
+    "cnc": {
+      "material": "Aluminium",
+      "component": "Frontplatte"
+    }
+  },
+  "quality": {
+    "status": "bestanden",
+    "date": "2026-05-27"
+  },
+  "link": {
+    "cad": "https://fusion-link-zum-modell"
+  }
+}
