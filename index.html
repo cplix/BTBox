@@ -4,56 +4,18 @@
   <meta charset="UTF-8">
   <title>Produktdaten - BT Box</title>
 
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      background-color: #f4f6f8;
-    }
-
-    h1 {
-      color: #2c3e50;
-    }
-
-    .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      max-width: 500px;
-    }
-
-    .section {
-      margin-bottom: 15px;
-    }
-
-    .label {
-      font-weight: bold;
-    }
-
-    .status {
-      font-weight: bold;
-      padding: 4px 8px;
-      border-radius: 5px;
-      color: white;
-    }
-
-    .ok {
-      background-color: green;
-    }
-
-    .fail {
-      background-color: red;
-    }
-
-    .live {
-      font-size: 0.9em;
-      color: #666;
-    }
+    body { font-family: Arial; margin: 40px; background: #f4f6f8; }
+    .card { background: white; padding: 20px; border-radius: 10px; max-width: 600px; }
+    .section { margin-bottom: 15px; }
+    .status { color: white; padding: 4px 8px; border-radius: 5px; }
+    .ok { background: green; }
+    .fail { background: red; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    td, th { border: 1px solid #ccc; padding: 5px; }
   </style>
 
 </head>
@@ -61,7 +23,7 @@
 <body>
 
 <h1>Produktdaten</h1>
-<div id="content" class="card">Verbinde mit Cloud...</div>
+<div id="content" class="card">Verbinde...</div>
 
 <script>
 
@@ -74,13 +36,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const params = new URLSearchParams(window.location.search);
-const id = params.get("id") || "id001";
-
+const id = new URLSearchParams(window.location.search).get("id") || "id001";
 const contentDiv = document.getElementById("content");
 
-// 🔥 Realtime Listener
-db.collection("products").doc(id).onSnapshot((docSnap) => {
+
+// 🔥 Realtime Hauptdaten
+db.collection("products").doc(id).onSnapshot(async (docSnap) => {
 
   if (!docSnap.exists) {
     contentDiv.innerHTML = "❌ Produkt nicht gefunden";
@@ -89,68 +50,98 @@ db.collection("products").doc(id).onSnapshot((docSnap) => {
 
   const data = docSnap.data();
 
-  const status = data.quality_status || "unbekannt";
-
   const statusClass =
-    status === "bestanden" ? "ok" :
-    status === "nicht bestanden" ? "fail" : "";
+    data.quality_status === "bestanden" ? "ok" : "fail";
+
+  // 🔥 Historie laden
+  const historySnap = await db.collection("products")
+    .doc(id)
+    .collection("history")
+    .orderBy("timestamp", "desc")
+    .get();
+
+  let historyHTML = "<table><tr><th>Zeit</th><th>Status</th><th>Benutzer</th></tr>";
+
+  historySnap.forEach(doc => {
+    const h = doc.data();
+    historyHTML += `
+      <tr>
+        <td>${h.timestamp}</td>
+        <td>${h.status}</td>
+        <td>${h.user}</td>
+      </tr>
+    `;
+  });
+
+  historyHTML += "</table>";
 
   contentDiv.innerHTML = `
     <div class="section">
-      <span class="label">Produkt-ID:</span> ${data.product_id}
+      <b>ID:</b> ${data.product_id}
     </div>
 
     <div class="section">
-      <span class="label">Version:</span> ${data.version}
-    </div>
-
-    <div class="section">
-      <span class="label">Status:</span><br>
+      <b>Status:</b><br>
       <span class="status ${statusClass}">
-        ${status}
+        ${data.quality_status}
       </span>
     </div>
 
     <div class="section">
-      <span class="label">Status ändern:</span><br>
+      <b>Letzte Änderung:</b><br>
+      ${data.last_update || "-"}<br>
+      <b>durch:</b> ${data.last_user || "-"}
+    </div>
+
+    <div class="section">
+      <b>Status ändern:</b><br>
+
+      <input id="userInput" placeholder="Name eingeben"><br><br>
 
       <select id="statusSelect">
-        <option value="bestanden" ${status === "bestanden" ? "selected" : ""}>bestanden</option>
-        <option value="nicht bestanden" ${status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
+        <option value="bestanden">bestanden</option>
+        <option value="nicht bestanden">nicht bestanden</option>
       </select>
 
-      <br>
+      <br><br>
       <button onclick="saveStatus()">Speichern</button>
     </div>
 
     <div class="section">
-      <span class="label">Letzte Änderung:</span><br>
-      ${data.last_update || "-"}
-    </div>
-
-    <div class="live">
-      🔴 Live-Verbindung aktiv
+      <b>Historie:</b>
+      ${historyHTML}
     </div>
   `;
-
 });
 
 
-// 🔧 Speichern
+// 🔧 Speichern + Historie
 async function saveStatus() {
 
   const status = document.getElementById("statusSelect").value;
+  const user = document.getElementById("userInput").value || "Unbekannt";
+  const time = new Date().toLocaleString();
+
+  const productRef = db.collection("products").doc(id);
 
   try {
-    await db.collection("products").doc(id).update({
+
+    // Hauptdaten aktualisieren
+    await productRef.update({
       quality_status: status,
-      last_update: new Date().toLocaleString()
+      last_update: time,
+      last_user: user
     });
 
-    // ❗ KEIN loadData() mehr nötig → Realtime übernimmt
+    // 🔥 Historie speichern
+    await productRef.collection("history").add({
+      status: status,
+      user: user,
+      timestamp: time
+    });
 
-  } catch (error) {
-    alert("❌ Fehler: " + error.message);
+  } catch (err) {
+    alert("Fehler: " + err.message);
   }
 }
 
