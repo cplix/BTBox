@@ -119,7 +119,11 @@ db.collection("products").doc(id).onSnapshot(async (docSnap) => {
 async function saveStatus() {
 
   const status = document.getElementById("statusSelect").value;
-  const user = document.getElementById("userInput").value || "Unbekannt";
+  const user = document.getElementById("userInput").value.trim();
+  if (!user) {
+    alert("Bitte Namen eingeben!");
+    return;
+  }
   const time = new Date().toLocaleString();
 
   const productRef = db.collection("products").doc(id);
