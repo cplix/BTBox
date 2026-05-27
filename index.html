@@ -1,91 +1,13 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <title>Produktdaten</title>
-</head>
-
+<html>
 <body>
 
-<h1>Produktdaten</h1>
-<div id="content">Starte...</div>
+<h1>Test</h1>
+<div id="content">Start...</div>
 
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const contentDiv = document.getElementById("content");
-
-try {
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
-    authDomain: "i40-btbox.firebaseapp.com",
-    projectId: "i40-btbox",
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  async function loadData() {
-
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id") || "id001";
-
-    try {
-      const ref = doc(db, "products", id);
-      const snap = await getDoc(ref);
-
-      if (!snap.exists()) {
-        contentDiv.innerHTML = "❌ Produkt nicht gefunden";
-        return;
-      }
-
-      const data = snap.data();
-
-      contentDiv.innerHTML = `
-        <p><b>ID:</b> ${data.product_id}</p>
-        <p><b>Version:</b> ${data.version}</p>
-
-        <p><b>Status:</b></p>
-        <select id="statusSelect">
-          <option value="bestanden" ${data.quality_status === "bestanden" ? "selected" : ""}>bestanden</option>
-          <option value="nicht bestanden" ${data.quality_status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
-        </select>
-
-        <br><br>
-        <button id="saveBtn">Speichern</button>
-      `;
-
-      document.getElementById("saveBtn").addEventListener("click", async () => {
-
-        const status = document.getElementById("statusSelect").value;
-
-        try {
-          await updateDoc(ref, {
-            quality_status: status
-          });
-
-          alert("✔ Gespeichert");
-          loadData();
-
-        } catch (err) {
-          contentDiv.innerHTML = "❌ Fehler beim Speichern: " + err.message;
-        }
-
-      });
-
-    } catch (err) {
-      contentDiv.innerHTML = "❌ Fehler beim Laden: " + err.message;
-    }
-  }
-
-  loadData();
-
-} catch (err) {
-  contentDiv.innerHTML = "❌ Firebase Fehler: " + err.message;
-}
+document.getElementById("content").innerText = "Script läuft";
 
 </script>
 
