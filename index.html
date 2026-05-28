@@ -85,37 +85,31 @@ async function loadProductName(){
 }
 
 
-// 🔥 JSON extern laden (RICHTIGE TRENNUNG!)
+// 🔥 JSON extern
 async function loadProductData(){
-
   try {
     const res = await fetch(`data/${id}.json`);
-    if (!res.ok) throw new Error("keine Datei");
+    if (!res.ok) throw new Error();
 
     const d = await res.json();
 
     let html = "<h3>📦 Produktdaten</h3>";
 
     if (d.manufacturing) {
-
       html += "<b>Fertigung</b><br>";
 
       if (d.manufacturing["3d_print"]) {
         const p = d.manufacturing["3d_print"];
-        html += `
-          3D-Druck: ${p.component}<br>
-          Material: ${p.material}<br>
-          Layer: ${p.layer_height}<br>
-          Infill: ${p.infill}<br><br>
-        `;
+        html += `3D-Druck: ${p.component}<br>
+        Material: ${p.material}<br>
+        Layer: ${p.layer_height}<br>
+        Infill: ${p.infill}<br><br>`;
       }
 
       if (d.manufacturing["cnc"]) {
         const c = d.manufacturing["cnc"];
-        html += `
-          CNC: ${c.component}<br>
-          Material: ${c.material}<br><br>
-        `;
+        html += `CNC: ${c.component}<br>
+        Material: ${c.material}<br><br>`;
       }
     }
 
@@ -127,9 +121,7 @@ async function loadProductData(){
     div.innerHTML = html;
     div.style.display = "block";
 
-  } catch {
-    // kein JSON → einfach nichts anzeigen
-  }
+  } catch {}
 }
 
 
@@ -138,6 +130,7 @@ function isStepUnlocked(stepId,data){
   if(i===0) return true;
   return data[stepOrder[i-1]]?.status==="bestanden";
 }
+
 
 async function initSteps(){
 
@@ -174,7 +167,7 @@ function listenSteps(){
       const allStepsData={};
       snap.docs.forEach(d=>allStepsData[d.id]=d.data());
 
-      // 🔥 QUALITÄT AUTOMATISCH (SCHNELL & OHNE EXTRA READ)
+      // 🔥 Qualitätsfreigabe
       const endabnahme = allStepsData["Endabnahme"];
       db.collection("products").doc(id).set({
         quality_status: (endabnahme && endabnahme.status==="bestanden")
@@ -238,7 +231,10 @@ function listenSteps(){
             <option>bestanden</option>
             <option>nicht bestanden</option>
           </select>
-          <button onclick="saveStep('${stepId}')" ${(!unlocked||role==="pruefung")?"disabled":""}>Speichern</button>
+
+          <button onclick="saveStep('${stepId}')" ${(!unlocked||role==="pruefung")?"disabled":""}>
+            Speichern
+          </button>
 
           <br>
           <button onclick="toggleHistory('${stepId}')">📜 Historie</button>
@@ -253,7 +249,83 @@ function listenSteps(){
 }
 
 
-// 🔥 HISTORIE ON DEMAND
+// 🔧 SUBSTEP (inkl. Status-Rückfall)
+async function toggleSub(stepId,key,val){
+
+  if(role==="pruefung") return;
+
+  const ref=db.collection("products").doc(id)
+    .collection("steps").doc(stepId);
+
+  const snap=await ref.get();
+  const data=snap.data();
+
+  const sub=data.substeps||{};
+  sub[key]=val;
+
+  const allDone = Object.values(sub).every(v=>v);
+
+  let newStatus = data.status;
+
+  // 🔥 FIX: Status automatisch zurücksetzen
+  if(!allDone && data.status==="bestanden"){
+    newStatus = "nicht bestanden";
+  }
+
+  await ref.update({
+    substeps:sub,
+    status:newStatus
+  });
+}
+
+
+// 🔧 SAVE (FIXES HIER!)
+async function saveStep(stepId){
+
+  if(role==="pruefung") return alert("Keine Änderung erlaubt");
+
+  const user=document.getElementById("user_"+stepId).value.trim();
+  const status=document.getElementById("status_"+stepId).value;
+
+  // 🔥 FIX 1: Name Pflicht
+  if(!user){
+    return alert("Bitte Namen eingeben!");
+  }
+
+  const ref=db.collection("products").doc(id)
+    .collection("steps").doc(stepId);
+
+  const snap = await ref.get();
+  const data = snap.data();
+
+  // 🔥 FIX 2: Substeps prüfen
+  if(data.substeps){
+    const allDone = Object.values(data.substeps).every(v=>v);
+    if(!allDone && status==="bestanden"){
+      return alert("Alle Unterpunkte müssen erledigt sein!");
+    }
+  }
+
+  const time=new Date().toLocaleString();
+
+  await ref.update({
+    status,
+    last_update:time,
+    last_user:user
+  });
+
+  // 🔥 FIX 3: vollständiges Audit-Log
+  await ref.collection("history").add({
+    user,
+    timestamp:time,
+    status,
+    role,
+    action:"Status geändert"
+  });
+}
+
+
+// 🔥 HISTORIE
 async function toggleHistory(stepId){
 
   const div = document.getElementById("hist_"+stepId);
@@ -271,13 +343,14 @@ async function toggleHistory(stepId){
     .doc(stepId).collection("history")
     .orderBy("timestamp","desc").limit(10).get();
 
-  let html="<table><tr><th>Zeit</th><th>User</th><th>Aktion</th></tr>";
+  let html="<table><tr><th>Zeit</th><th>User</th><th>Status</th><th>Aktion</th></tr>";
 
   snap.forEach(d=>{
     const h=d.data();
     html+=`<tr>
       <td>${h.timestamp}</td>
       <td>${h.user}</td>
+      <td>${h.status||"-"}</td>
       <td>${h.action}</td>
     </tr>`;
   });
@@ -287,57 +360,11 @@ async function toggleHistory(stepId){
 }
 
 
-// 🔧 SUBSTEP
-async function toggleSub(stepId,key,val){
-
-  if(role==="pruefung") return;
-
-  const ref=db.collection("products").doc(id)
-    .collection("steps").doc(stepId);
-
-  const snap=await ref.get();
-  const data=snap.data();
-
-  const sub=data.substeps||{};
-  sub[key]=val;
-
-  await ref.update({substeps:sub});
-}
-
-
-// 🔧 SAVE
-async function saveStep(stepId){
-
-  if(role==="pruefung") return alert("Keine Änderung erlaubt");
-
-  const user=document.getElementById("user_"+stepId).value;
-  const status=document.getElementById("status_"+stepId).value;
-
-  const ref=db.collection("products").doc(id)
-    .collection("steps").doc(stepId);
-
-  const time=new Date().toLocaleString();
-
-  await ref.update({
-    status,
-    last_update:time,
-    last_user:user
-  });
-
-  await ref.collection("history").add({
-    user,
-    timestamp:time,
-    action:"Status geändert",
-    role
-  });
-}
-
-
 // START
 function startApp(){
   initSteps().then(()=>{
     loadProductName();
-    loadProductData(); // 🔥 externes JSON
+    loadProductData();
     listenSteps();
   });
 }
