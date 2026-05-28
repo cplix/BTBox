@@ -67,11 +67,8 @@ const stepOrder = [
 ];
 
 const listDiv = document.getElementById("list");
-
 let listeners = [];
 
-
-// 🔥 Dashboard neu berechnen
 async function renderDashboard() {
 
   const productsSnap = await db.collection("products").get();
@@ -118,26 +115,19 @@ async function renderDashboard() {
     `;
   }
 
-  if (!html) html = "Keine Produkte vorhanden.";
-
-  listDiv.innerHTML = html;
+  listDiv.innerHTML = html || "Keine Produkte vorhanden.";
 }
 
-
-// 🔥 Realtime Setup
 async function startRealtime() {
 
   const productsSnap = await db.collection("products").get();
 
-  // Alte Listener entfernen (wichtig!)
   listeners.forEach(unsub => unsub());
   listeners = [];
 
   for (const productDoc of productsSnap.docs) {
 
     const pid = productDoc.id;
-    const pdata = productDoc.data() || {};
-    const pname = pdata.name || pid;
 
     const unsub = db.collection("products")
       .doc(pid)
@@ -149,18 +139,18 @@ async function startRealtime() {
     listeners.push(unsub);
   }
 
-  // Initial anzeigen
   renderDashboard();
+
+  // 🔥 erkennt neue Produkte
+  db.collection("products").onSnapshot(() => {
+    startRealtime();
+  });
 }
 
-
-// 🔗 Navigation
 function openProduct(id) {
   window.location.href = `index.html?id=${id}`;
 }
 
-
-// Start
 startRealtime();
 
 </script>

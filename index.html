@@ -17,6 +17,7 @@
     }
 
     .section { margin-bottom:25px; }
+
     .status {
       padding:5px 10px; border-radius:5px; color:white;
       font-weight:bold;
@@ -55,9 +56,11 @@
 
 <h1>🔊 BT Box – Prozessstatus</h1>
 <h2 id="productTitle"></h2>
+
 <div style="margin-bottom:20px;">
   <a href="dashboard.html">⬅️ Zum Dashboard</a>
 </div>
+
 <div id="content" class="card">Verbinde...</div>
 
 <script>
@@ -72,20 +75,21 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const id = new URLSearchParams(window.location.search).get("id") || "id001";
-async function loadProductName() {
-
-  const productRef = db.collection("products").doc(id);
-  const snap = await productRef.get();
-
-  const data = snap.data() || {};
-
-  const name = data.name || id;
-
-  document.getElementById("productTitle").innerHTML =
-    "Produkt: <b>" + name + "</b> (" + id + ")";
-}
-document.getElementById("productTitle").innerHTML = "Produkt-ID: <b>" + id + "</b>";
 const contentDiv = document.getElementById("content");
+
+async function loadProductName() {
+  try {
+    const snap = await db.collection("products").doc(id).get();
+    const data = snap.data() || {};
+    const name = data.name || id;
+
+    document.getElementById("productTitle").innerHTML =
+      "Produkt: <b>" + name + "</b> (" + id + ")";
+  } catch (err) {
+    document.getElementById("productTitle").innerHTML =
+      "Produkt: <b>" + id + "</b>";
+  }
+}
 
 const stepOrder = [
   "Konstruktion",
@@ -103,8 +107,6 @@ const subStepsConfig = {
   "Endabnahme": []
 };
 
-
-// 🔥 Abhängigkeit prüfen
 function isStepUnlocked(stepId, allStepsData) {
   const index = stepOrder.indexOf(stepId);
   if (index === 0) return true;
@@ -113,20 +115,15 @@ function isStepUnlocked(stepId, allStepsData) {
   return allStepsData[prevStep]?.status === "bestanden";
 }
 
-
-// 🔧 Initialisierung
 async function initSteps() {
+
   const productRef = db.collection("products").doc(id);
 
-  // 🔥 Produkt-Dokument sicherstellen
-  await productRef.set({
-    created: true
-  }, { merge: true });
+  await productRef.set({ created: true }, { merge: true });
+
   for (const step of stepOrder) {
 
-    const ref = db.collection("products").doc(id)
-      .collection("steps").doc(step);
-
+    const ref = productRef.collection("steps").doc(step);
     const snap = await ref.get();
 
     const substeps = {};
@@ -149,8 +146,6 @@ async function initSteps() {
   }
 }
 
-
-// 🔥 Anzeige
 function listenSteps() {
 
   db.collection("products").doc(id)
@@ -159,13 +154,11 @@ function listenSteps() {
 
       const docs = snapshot.docs;
 
-      // 🔥 Map für Abhängigkeiten
       const allStepsData = {};
       docs.forEach(doc => {
         allStepsData[doc.id] = doc.data();
       });
 
-      // 🔥 Progress
       let completed = docs.filter(d => d.data().status === "bestanden").length;
       let percent = Math.round((completed / stepOrder.length) * 100);
 
@@ -188,17 +181,18 @@ function listenSteps() {
 
         const step = docSnap.data();
         const stepId = docSnap.id;
-
         const isUnlocked = isStepUnlocked(stepId, allStepsData);
 
         const statusClass = step.status === "bestanden" ? "ok" : "fail";
 
-        // 🔥 Substeps
         let substepsHTML = "";
         let i = 1;
 
         for (const key of subStepsConfig[stepId] || []) {
-          const val = step.substeps?.[key] || false;
+
+          const val = step.substeps && key in step.substeps
+            ? step.substeps[key]
+            : false;
 
           substepsHTML += `
             <label>
@@ -212,26 +206,6 @@ function listenSteps() {
           `;
           i++;
         }
-
-        // 🔥 Historie
-        const histSnap = await db.collection("products")
-          .doc(id).collection("steps").doc(stepId)
-          .collection("history")
-          .orderBy("timestamp","desc")
-          .get();
-
-        let histHTML = "<table><tr><th>Zeit</th><th>Status</th><th>User</th></tr>";
-
-        histSnap.forEach(h => {
-          const d = h.data();
-          histHTML += `<tr>
-            <td>${d.timestamp}</td>
-            <td>${d.status}</td>
-            <td>${d.user}</td>
-          </tr>`;
-        });
-
-        histHTML += "</table>";
 
         html += `
           <div class="section">
@@ -259,8 +233,6 @@ function listenSteps() {
               <button onclick="saveStep('${stepId}')" ${!isUnlocked ? "disabled":""}>Speichern</button>
             </div>
 
-            <div><b>Historie</b>${histHTML}</div>
-
           </div>
           <hr>
         `;
@@ -270,8 +242,6 @@ function listenSteps() {
     });
 }
 
-
-// 🔧 Substeps
 async function toggleSubstep(stepId, key, value) {
 
   const ref = db.collection("products")
@@ -290,14 +260,9 @@ async function toggleSubstep(stepId, key, value) {
     newStatus = "nicht bestanden";
   }
 
-  await ref.update({
-    substeps,
-    status: newStatus
-  });
+  await ref.update({ substeps, status: newStatus });
 }
 
-
-// 🔧 Speichern
 async function saveStep(stepId) {
 
   const user = document.getElementById(`user_${stepId}`).value.trim();
@@ -345,13 +310,15 @@ async function saveStep(stepId) {
   });
 }
 
-
-// Start
 initSteps()
   .then(() => {
     loadProductName();
     listenSteps();
   })
+  .catch(err => {
+    contentDiv.innerHTML = "❌ Fehler: " + err.message;
+    console.error(err);
+  });
 
 </script>
 
