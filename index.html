@@ -60,7 +60,7 @@
 
     #roleSelection button {
       margin:10px;
-      width:200px;
+      width:220px;
     }
 
     table { width:100%; border-collapse:collapse; margin-top:10px; }
@@ -81,8 +81,8 @@
 <!-- 🔥 Rollenauswahl -->
 <div id="roleSelection" class="card">
   <h3>Rolle wählen</h3>
-  <button onclick="selectRole('viewer')">👁 Anzeigen</button>
-  <button onclick="selectRole('editor')">🛠 Prüfen</button>
+  <button onclick="selectRole('bearbeitung')">🛠 Bearbeitung</button>
+  <button onclick="selectRole('pruefung')">🔍 Prüfung (nur lesen)</button>
 </div>
 
 <div id="content" class="card">Verbinde...</div>
@@ -101,7 +101,6 @@ const db = firebase.firestore();
 const params = new URLSearchParams(window.location.search);
 const id = params.get("id") || "id001";
 
-// 🔥 Rolle wird dynamisch gesetzt
 let role = null;
 
 const contentDiv = document.getElementById("content");
@@ -132,9 +131,9 @@ function selectRole(selectedRole) {
   document.getElementById("content").style.display = "block";
 
   document.getElementById("roleInfo").innerHTML =
-    role === "editor"
-      ? "🛠 Rolle: Prüfer (Bearbeiten erlaubt)"
-      : "👁 Rolle: Viewer (Nur Lesen)";
+    role === "bearbeitung"
+      ? "🛠 Rolle: Bearbeitung (Änderungen erlaubt)"
+      : "🔍 Rolle: Prüfung (nur Lesen)";
 
   startApp();
 }
@@ -261,7 +260,7 @@ function listenSteps() {
               ${i}.
               <input type="checkbox"
                 ${val ? "checked":""}
-                ${(!isUnlocked || role === "viewer") ? "disabled":""}
+                ${(!isUnlocked || role === "pruefung") ? "disabled":""}
                 onchange="toggleSubstep('${stepId}','${key}',this.checked)">
               ${key}
             </label><br>
@@ -287,12 +286,12 @@ function listenSteps() {
             <div><h4>Unterpunkte</h4>${substepsHTML}</div>
 
             <div>
-              <input id="user_${stepId}" placeholder="Name" ${( !isUnlocked || role === "viewer") ? "disabled":""}>
-              <select id="status_${stepId}" ${( !isUnlocked || role === "viewer") ? "disabled":""}>
+              <input id="user_${stepId}" placeholder="Name" ${( !isUnlocked || role === "pruefung") ? "disabled":""}>
+              <select id="status_${stepId}" ${( !isUnlocked || role === "pruefung") ? "disabled":""}>
                 <option value="bestanden">bestanden</option>
                 <option value="nicht bestanden">nicht bestanden</option>
               </select>
-              <button onclick="saveStep('${stepId}')" ${( !isUnlocked || role === "viewer") ? "disabled":""}>Speichern</button>
+              <button onclick="saveStep('${stepId}')" ${( !isUnlocked || role === "pruefung") ? "disabled":""}>Speichern</button>
             </div>
 
           </div>
@@ -308,7 +307,7 @@ function listenSteps() {
 // 🔧 Substeps
 async function toggleSubstep(stepId, key, value) {
 
-  if (role === "viewer") return;
+  if (role === "pruefung") return;
 
   const ref = db.collection("products")
     .doc(id).collection("steps").doc(stepId);
@@ -333,8 +332,8 @@ async function toggleSubstep(stepId, key, value) {
 // 🔧 Speichern
 async function saveStep(stepId) {
 
-  if (role === "viewer") {
-    alert("Nur Lesen erlaubt!");
+  if (role === "pruefung") {
+    alert("Keine Änderungen in der Prüfrolle erlaubt!");
     return;
   }
 
@@ -384,7 +383,7 @@ async function saveStep(stepId) {
 }
 
 
-// 🔥 Start nach Rollenauswahl
+// 🔥 Start
 function startApp() {
   initSteps()
     .then(() => {
@@ -397,8 +396,6 @@ function startApp() {
     });
 }
 
-
-// 🔥 Initialzustand
 document.getElementById("content").style.display = "none";
 
 </script>
