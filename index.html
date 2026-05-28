@@ -40,7 +40,7 @@ button { margin-top:10px; padding:6px 12px; }
   <button onclick="selectRole('pruefung')">🔍 Prüfung</button>
 </div>
 
-<div id="content" class="card">Verbinde...</div>
+<div id="content" class="card">🔄 Lade Daten...</div>
 
 <script>
 
@@ -85,7 +85,7 @@ async function loadProductName(){
 }
 
 
-// 🔥 JSON extern
+// 📦 JSON extern
 async function loadProductData(){
   try {
     const res = await fetch(`data/${id}.json`);
@@ -132,50 +132,62 @@ function isStepUnlocked(stepId,data){
 }
 
 
+// 🚀 INIT (parallelisiert)
 async function initSteps(){
 
   const productRef = db.collection("products").doc(id);
   await productRef.set({created:true},{merge:true});
 
-  for(const step of stepOrder){
+  await Promise.all(stepOrder.map(async step => {
 
     const ref = productRef.collection("steps").doc(step);
     const snap = await ref.get();
 
-    const substeps={};
-    (subStepsConfig[step]||[]).forEach(s=>substeps[s]=false);
-
     if(!snap.exists){
-      await ref.set({
+      const substeps={};
+      (subStepsConfig[step]||[]).forEach(s=>substeps[s]=false);
+
+      return ref.set({
         status:"nicht bestanden",
         substeps,
         last_update:"",
         last_user:""
       });
     }
-  }
+
+  }));
 }
 
 
-// 🔥 HAUPTLOGIK
+// 🔥 HAUPTLOGIK (ohne Loop!)
 function listenSteps(){
 
   db.collection("products").doc(id)
     .collection("steps")
-    .onSnapshot(snap=>{
+    .onSnapshot(async snap=>{
 
       const allStepsData={};
       snap.docs.forEach(d=>allStepsData[d.id]=d.data());
 
-      // 🔥 Qualitätsfreigabe
+      // 🔥 Qualitätsstatus nur schreiben wenn nötig
       const endabnahme = allStepsData["Endabnahme"];
-      db.collection("products").doc(id).set({
-        quality_status: (endabnahme && endabnahme.status==="bestanden")
+      const productRef = db.collection("products").doc(id);
+
+      const newStatus =
+        (endabnahme && endabnahme.status==="bestanden")
           ? "freigegeben"
-          : "nicht freigegeben",
-        quality_date: endabnahme?.last_update || "",
-        quality_user: endabnahme?.last_user || ""
-      },{merge:true});
+          : "nicht freigegeben";
+
+      const productSnap = await productRef.get();
+      const current = productSnap.data()?.quality_status;
+
+      if(current !== newStatus){
+        await productRef.set({
+          quality_status:newStatus,
+          quality_date:endabnahme?.last_update||"",
+          quality_user:endabnahme?.last_user||""
+        },{merge:true});
+      }
 
       let html="";
 
@@ -249,7 +261,7 @@ function listenSteps(){
 }
 
 
-// 🔧 SUBSTEP (inkl. Status-Rückfall)
+// 🔧 SUBSTEP (ohne extra read!)
 async function toggleSub(stepId,key,val){
 
   if(role==="pruefung") return;
@@ -257,19 +269,17 @@ async function toggleSub(stepId,key,val){
   const ref=db.collection("products").doc(id)
     .collection("steps").doc(stepId);
 
-  const snap=await ref.get();
-  const data=snap.data();
+  const doc = await ref.get();
+  const data = doc.data();
 
-  const sub=data.substeps||{};
+  const sub={...(data.substeps||{})};
   sub[key]=val;
 
   const allDone = Object.values(sub).every(v=>v);
 
   let newStatus = data.status;
-
-  // 🔥 FIX: Status automatisch zurücksetzen
   if(!allDone && data.status==="bestanden"){
-    newStatus = "nicht bestanden";
+    newStatus="nicht bestanden";
   }
 
   await ref.update({
@@ -279,7 +289,7 @@ async function toggleSub(stepId,key,val){
 }
 
 
-// 🔧 SAVE (FIXES HIER!)
+// 🔧 SAVE
 async function saveStep(stepId){
 
   if(role==="pruefung") return alert("Keine Änderung erlaubt");
@@ -287,7 +297,6 @@ async function saveStep(stepId){
   const user=document.getElementById("user_"+stepId).value.trim();
   const status=document.getElementById("status_"+stepId).value;
 
-  // 🔥 FIX 1: Name Pflicht
   if(!user){
     return alert("Bitte Namen eingeben!");
   }
@@ -298,7 +307,6 @@ async function saveStep(stepId){
   const snap = await ref.get();
   const data = snap.data();
 
-  // 🔥 FIX 2: Substeps prüfen
   if(data.substeps){
     const allDone = Object.values(data.substeps).every(v=>v);
     if(!allDone && status==="bestanden"){
@@ -314,7 +322,6 @@ async function saveStep(stepId){
     last_user:user
   });
 
-  // 🔥 FIX 3: vollständiges Audit-Log
   await ref.collection("history").add({
     user,
     timestamp:time,
@@ -325,7 +332,7 @@ async function saveStep(stepId){
 }
 
 
-// 🔥 HISTORIE
+// 📜 HISTORIE
 async function toggleHistory(stepId){
 
   const div = document.getElementById("hist_"+stepId);
