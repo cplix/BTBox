@@ -8,103 +8,49 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <style>
-    body {
-      font-family: Arial;
-      background: #f4f6f8;
-      margin: 40px;
-    }
-
-    h1 {
-      color: #2c3e50;
-    }
+    body { font-family: Arial; background:#f4f6f8; margin:40px; }
+    h1 { color:#2c3e50; }
 
     .card {
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-      max-width: 650px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      background:white; padding:20px; border-radius:10px;
+      max-width:700px; box-shadow:0 2px 6px rgba(0,0,0,0.1);
     }
 
-    .section {
-      margin-bottom: 20px;
-    }
-
-    .title {
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #34495e;
-    }
-
+    .section { margin-bottom:25px; }
     .status {
-      display: inline-block;
-      padding: 6px 10px;
-      border-radius: 6px;
-      color: white;
-      font-weight: bold;
+      padding:5px 10px; border-radius:5px; color:white;
+      font-weight:bold;
     }
 
-    .ok { background: #27ae60; }
-    .fail { background: #e74c3c; }
+    .ok { background:#27ae60; }
+    .fail { background:#e74c3c; }
 
     input, select {
-      padding: 6px;
-      width: 100%;
-      max-width: 300px;
-      margin-top: 5px;
+      padding:6px; margin-top:5px; width:100%; max-width:300px;
     }
 
     button {
-      margin-top: 10px;
-      padding: 8px 14px;
-      border: none;
-      background: #3498db;
-      color: white;
-      border-radius: 5px;
-      cursor: pointer;
+      margin-top:10px; padding:8px 14px;
+      background:#3498db; color:white; border:none;
+      border-radius:5px; cursor:pointer;
     }
 
-    button:disabled {
-      background: #95a5a6;
-      cursor: not-allowed;
-    }
-
-    .success {
-      color: green;
-      font-size: 0.9em;
-      margin-top: 5px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-
-    td, th {
-      border: 1px solid #ddd;
-      padding: 6px;
-    }
-
-    th {
-      background: #ecf0f1;
-    }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    td, th { border:1px solid #ddd; padding:5px; }
   </style>
-
 </head>
 
 <body>
 
-<h1>🔊 BT Box – Produktstatus</h1>
-
+<h1>🔊 BT Box – Prozessstatus</h1>
 <div id="content" class="card">Verbinde...</div>
 
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+  apiKey: "DEIN_API_KEY",
   authDomain: "i40-btbox.firebaseapp.com",
-  projectId: "i40-btbox",
+  projectId: "i40-btbox"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -113,7 +59,8 @@ const db = firebase.firestore();
 const id = new URLSearchParams(window.location.search).get("id") || "id001";
 const contentDiv = document.getElementById("content");
 
-// 🔥 EINMAL definieren reicht
+
+// 🔥 Reihenfolge
 const stepOrder = [
   "Konstruktion",
   "Fertigung",
@@ -123,7 +70,17 @@ const stepOrder = [
 ];
 
 
-// 🔥 Initialisierung
+// 🔥 Substeps
+const subStepsConfig = {
+  "Konstruktion": ["3D-Modell","Zusammenbau","Technische Dokumente"],
+  "Fertigung": ["CNC-Bearbeitung","3D-Druck"],
+  "Vormontage": [],
+  "Endmontage": [],
+  "Endabnahme": []
+};
+
+
+// 🔧 Initialisierung
 async function initSteps() {
 
   for (const step of stepOrder) {
@@ -134,152 +91,185 @@ async function initSteps() {
     const snap = await ref.get();
 
     if (!snap.exists) {
+
+      const substeps = {};
+      (subStepsConfig[step] || []).forEach(s => substeps[s] = false);
+
       await ref.set({
         name: step,
         status: "nicht bestanden",
         last_update: "",
-        last_user: ""
+        last_user: "",
+        substeps: substeps
       });
     }
   }
 }
 
 
-// 🔥 Realtime Anzeige
+// 🔥 Anzeige
 function listenSteps() {
 
   db.collection("products").doc(id)
     .collection("steps")
     .onSnapshot(async (snapshot) => {
 
-      try {
+      let html = "";
+      const docs = snapshot.docs;
 
-        let html = "";
+      docs.sort((a,b) =>
+        stepOrder.indexOf(a.id) - stepOrder.indexOf(b.id)
+      );
 
-        const docs = snapshot.docs;
+      for (const docSnap of docs) {
 
-        // 🔥 sortieren
-        docs.sort((a, b) => {
-          return stepOrder.indexOf(a.id) - stepOrder.indexOf(b.id);
-        });
+        const step = docSnap.data();
+        const stepId = docSnap.id;
 
-        for (const docSnap of docs) {
+        const statusClass =
+          step.status === "bestanden" ? "ok" : "fail";
 
-          const step = docSnap.data();
-          const stepId = docSnap.id;
-
-          const statusClass =
-            step.status === "bestanden" ? "ok" : "fail";
-
-          // 🔥 Historie laden
-          const histSnap = await db.collection("products")
-            .doc(id)
-            .collection("steps")
-            .doc(stepId)
-            .collection("history")
-            .orderBy("timestamp", "desc")
-            .get();
-
-          let histHTML = "<table><tr><th>Zeit</th><th>Status</th><th>User</th></tr>";
-
-          histSnap.forEach(h => {
-            const d = h.data();
-            histHTML += `
-              <tr>
-                <td>${d.timestamp}</td>
-                <td>${d.status}</td>
-                <td>${d.user}</td>
-              </tr>
+        // 🔥 Substeps UI
+        let substepsHTML = "";
+        if (step.substeps) {
+          for (const [k,v] of Object.entries(step.substeps)) {
+            substepsHTML += `
+              <label>
+                <input type="checkbox"
+                  ${v ? "checked":""}
+                  onchange="toggleSubstep('${stepId}','${k}',this.checked)">
+                ${k}
+              </label><br>
             `;
-          });
-
-          histHTML += "</table>";
-
-          html += `
-            <div class="section">
-
-              <h3>${step.name}</h3>
-
-              <div>
-                <span class="status ${statusClass}">
-                  ${step.status}
-                </span>
-              </div>
-
-              <div>
-                Letzte Änderung:<br>
-                ${step.last_update || "-"}<br>
-                durch: ${step.last_user || "-"}
-              </div>
-
-              <div>
-                <input id="user_${stepId}" placeholder="Name">
-                
-                <select id="status_${stepId}">
-                  <option value="bestanden" ${step.status === "bestanden" ? "selected" : ""}>bestanden</option>
-                  <option value="nicht bestanden" ${step.status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
-                </select>
-
-                <button onclick="saveStep('${stepId}')">
-                  Speichern
-                </button>
-              </div>
-
-              <div>
-                <b>Historie</b>
-                ${histHTML}
-              </div>
-
-            </div>
-            <hr>
-          `;
+          }
         }
 
-        contentDiv.innerHTML = html;
+        // 🔥 Historie
+        const histSnap = await db.collection("products")
+          .doc(id).collection("steps").doc(stepId)
+          .collection("history")
+          .orderBy("timestamp","desc")
+          .get();
 
-      } catch (err) {
-        contentDiv.innerHTML = "❌ Fehler beim Laden: " + err.message;
+        let histHTML = "<table><tr><th>Zeit</th><th>Status</th><th>User</th></tr>";
+
+        histSnap.forEach(h => {
+          const d = h.data();
+          histHTML += `<tr>
+            <td>${d.timestamp}</td>
+            <td>${d.status}</td>
+            <td>${d.user}</td>
+          </tr>`;
+        });
+
+        histHTML += "</table>";
+
+        html += `
+          <div class="section">
+
+            <h3>${stepId}</h3>
+
+            <div>
+              <span class="status ${statusClass}">
+                ${step.status}
+              </span>
+            </div>
+
+            <div>
+              Letzte Änderung:<br>
+              ${step.last_update || "-"}<br>
+              durch: ${step.last_user || "-"}
+            </div>
+
+            <div>
+              <b>Unterpunkte</b><br>
+              ${substepsHTML}
+            </div>
+
+            <div>
+              <input id="user_${stepId}" placeholder="Name">
+
+              <select id="status_${stepId}">
+                <option value="bestanden">bestanden</option>
+                <option value="nicht bestanden">nicht bestanden</option>
+              </select>
+
+              <button onclick="saveStep('${stepId}')">
+                Speichern
+              </button>
+            </div>
+
+            <div>
+              <b>Historie</b>
+              ${histHTML}
+            </div>
+
+          </div>
+          <hr>
+        `;
       }
 
+      contentDiv.innerHTML = html;
     });
+}
+
+
+// 🔧 Substep ändern
+async function toggleSubstep(stepId, key, value) {
+
+  const ref = db.collection("products")
+    .doc(id).collection("steps").doc(stepId);
+
+  const snap = await ref.get();
+  const data = snap.data();
+
+  const substeps = data.substeps || {};
+  substeps[key] = value;
+
+  await ref.update({ substeps: substeps });
 }
 
 
 // 🔧 Speichern
 async function saveStep(stepId) {
 
-  try {
+  const user = document.getElementById(`user_${stepId}`).value.trim();
+  const status = document.getElementById(`status_${stepId}`).value;
 
-    const user = document.getElementById(`user_${stepId}`).value.trim();
-    const status = document.getElementById(`status_${stepId}`).value;
+  if (!user) {
+    alert("Bitte Namen eingeben!");
+    return;
+  }
 
-    if (!user) {
-      alert("Bitte Namen eingeben!");
+  const ref = db.collection("products")
+    .doc(id).collection("steps").doc(stepId);
+
+  const snap = await ref.get();
+  const data = snap.data();
+
+  // 🔥 Validierung Substeps
+  if (data.substeps) {
+    const allDone = Object.values(data.substeps).every(v => v === true);
+
+    if (!allDone && status === "bestanden") {
+      alert("Alle Unterpunkte müssen erledigt sein!");
       return;
     }
-
-    const time = new Date().toLocaleString();
-
-    const ref = db.collection("products")
-      .doc(id)
-      .collection("steps")
-      .doc(stepId);
-
-    await ref.update({
-      status: status,
-      last_update: time,
-      last_user: user
-    });
-
-    await ref.collection("history").add({
-      status: status,
-      user: user,
-      timestamp: time
-    });
-
-  } catch (err) {
-    alert("❌ Fehler: " + err.message);
   }
+
+  const time = new Date().toLocaleString();
+
+  await ref.update({
+    status: status,
+    last_update: time,
+    last_user: user
+  });
+
+  await ref.collection("history").add({
+    status: status,
+    user: user,
+    timestamp: time
+  });
 }
 
 
