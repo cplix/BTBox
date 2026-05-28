@@ -17,7 +17,6 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 .inprogress { background:#f1c40f; color:black; }
 
 .history { display:none; margin-top:10px; }
-
 .warning { color:#e67e22; font-size:0.9em; }
 
 button { margin-top:10px; padding:6px 12px; }
@@ -136,9 +135,12 @@ function listenSteps(){
 
       let html="";
 
-      snap.docs.sort((a,b)=>stepOrder.indexOf(a.id)-stepOrder.indexOf(b.id));
+      // 🔥 HIER IST DER WICHTIGE FIX
+      const orderedDocs = stepOrder.map(stepName =>
+        snap.docs.find(d => d.id === stepName)
+      ).filter(Boolean);
 
-      snap.docs.forEach(docSnap=>{
+      orderedDocs.forEach(docSnap=>{
 
         const step = docSnap.data();
         const stepId = docSnap.id;
