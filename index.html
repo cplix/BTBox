@@ -35,6 +35,17 @@
       border-radius:5px; cursor:pointer;
     }
 
+    button:disabled {
+      background:#aaa;
+      cursor:not-allowed;
+    }
+
+    .warning {
+      color:#e67e22;
+      font-size:0.9em;
+      margin-top:5px;
+    }
+
     table { width:100%; border-collapse:collapse; margin-top:10px; }
     td, th { border:1px solid #ddd; padding:5px; }
   </style>
@@ -59,8 +70,6 @@ const db = firebase.firestore();
 const id = new URLSearchParams(window.location.search).get("id") || "id001";
 const contentDiv = document.getElementById("content");
 
-
-// 🔥 Reihenfolge
 const stepOrder = [
   "Konstruktion",
   "Fertigung",
@@ -69,20 +78,27 @@ const stepOrder = [
   "Endabnahme"
 ];
 
-
-// 🔥 Substeps
 const subStepsConfig = {
   "Konstruktion": ["3D-Modell","Zusammenbau","Technische Dokumente"],
-  "Fertigung": ["CNC-Bearbeitung","3D-Druck"],
+  "Fertigung": ["3D-Druck","CNC-Bearbeitung"],
   "Vormontage": [],
   "Endmontage": [],
   "Endabnahme": []
 };
 
 
+// 🔥 Abhängigkeit prüfen
+function isStepUnlocked(stepId, allStepsData) {
+  const index = stepOrder.indexOf(stepId);
+  if (index === 0) return true;
+
+  const prevStep = stepOrder[index - 1];
+  return allStepsData[prevStep]?.status === "bestanden";
+}
+
+
 // 🔧 Initialisierung
 async function initSteps() {
-
   for (const step of stepOrder) {
 
     const ref = db.collection("products").doc(id)
@@ -94,7 +110,6 @@ async function initSteps() {
     (subStepsConfig[step] || []).forEach(s => substeps[s] = false);
 
     if (!snap.exists) {
-
       await ref.set({
         name: step,
         status: "nicht bestanden",
@@ -102,17 +117,10 @@ async function initSteps() {
         last_user: "",
         substeps: substeps
       });
-
     } else {
-
-      const data = snap.data() || {};   // 🔥 FIX
-
+      const data = snap.data() || {};
       if (!data.substeps) {
-        try {
-          await ref.update({ substeps: substeps });
-        } catch (err) {
-          console.error("Update substeps fehlgeschlagen:", err);
-        }
+        await ref.update({ substeps: substeps });
       }
     }
   }
@@ -126,47 +134,28 @@ function listenSteps() {
     .collection("steps")
     .onSnapshot(async (snapshot) => {
 
-      let totalSteps = stepOrder.length;
-      let completedSteps = 0;
+      const docs = snapshot.docs;
 
-      // zählen
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (data.status === "bestanden") {
-          completedSteps++;
-        }
+      // 🔥 Map für Abhängigkeiten
+      const allStepsData = {};
+      docs.forEach(doc => {
+        allStepsData[doc.id] = doc.data();
       });
 
-      const percent = Math.round((completedSteps / totalSteps) * 100);
+      // 🔥 Progress
+      let completed = docs.filter(d => d.data().status === "bestanden").length;
+      let percent = Math.round((completed / stepOrder.length) * 100);
 
-      let progressHTML = `
+      let html = `
         <div style="margin-bottom:20px;">
-          <b>Fortschritt: ${completedSteps} / ${totalSteps}</b><br>
-
-          <div style="
-            width:100%;
-            background:#ddd;
-            border-radius:5px;
-            overflow:hidden;
-            height:20px;
-            margin-top:5px;
-          ">
-            <div style="
-              width:${percent}%;
-              background:#27ae60;
-              height:100%;
-              text-align:center;
-              color:white;
-              font-size:12px;
-            ">
+          <b>Fortschritt: ${completed} / ${stepOrder.length}</b>
+          <div style="background:#ddd;height:20px;border-radius:5px;">
+            <div style="width:${percent}%;background:#27ae60;height:100%;color:white;text-align:center;">
               ${percent}%
             </div>
           </div>
         </div>
       `;
-
-      let html = progressHTML;
-      const docs = snapshot.docs;
 
       docs.sort((a,b) =>
         stepOrder.indexOf(a.id) - stepOrder.indexOf(b.id)
@@ -177,30 +166,27 @@ function listenSteps() {
         const step = docSnap.data();
         const stepId = docSnap.id;
 
-        const statusClass =
-          step.status === "bestanden" ? "ok" : "fail";
+        const isUnlocked = isStepUnlocked(stepId, allStepsData);
 
-        // 🔥 Substeps UI
+        const statusClass = step.status === "bestanden" ? "ok" : "fail";
+
+        // 🔥 Substeps
         let substepsHTML = "";
-
-        const orderedSubsteps = subStepsConfig[stepId] || [];
-
         let i = 1;
 
-        for (const key of orderedSubsteps) {
-
-          const value = step.substeps ? step.substeps[key] : false;
+        for (const key of subStepsConfig[stepId] || []) {
+          const val = step.substeps?.[key] || false;
 
           substepsHTML += `
             <label>
-              ${i}. 
+              ${i}.
               <input type="checkbox"
-                ${value ? "checked":""}
+                ${val ? "checked":""}
+                ${!isUnlocked ? "disabled":""}
                 onchange="toggleSubstep('${stepId}','${key}',this.checked)">
               ${key}
             </label><br>
           `;
-
           i++;
         }
 
@@ -229,40 +215,28 @@ function listenSteps() {
 
             <h3>${stepId}</h3>
 
+            <span class="status ${statusClass}">
+              ${step.status}
+            </span>
+
             <div>
-              <span class="status ${statusClass}">
-                ${step.status}
-              </span>
+              ${step.last_update || "-"} / ${step.last_user || "-"}
             </div>
 
-            <div>
-              Letzte Änderung:<br>
-              ${step.last_update || "-"}<br>
-              durch: ${step.last_user || "-"}
-            </div>
+            ${!isUnlocked ? "<div class='warning'>⚠️ Vorheriger Schritt nicht abgeschlossen</div>" : ""}
+
+            <div><h4>Unterpunkte</h4>${substepsHTML}</div>
 
             <div>
-              <h4>Unterpunkte</h4>
-              ${substepsHTML}
-            </div>
-
-            <div>
-              <input id="user_${stepId}" placeholder="Name">
-
-              <select id="status_${stepId}">
+              <input id="user_${stepId}" placeholder="Name" ${!isUnlocked ? "disabled":""}>
+              <select id="status_${stepId}" ${!isUnlocked ? "disabled":""}>
                 <option value="bestanden">bestanden</option>
                 <option value="nicht bestanden">nicht bestanden</option>
               </select>
-
-              <button onclick="saveStep('${stepId}')">
-                Speichern
-              </button>
+              <button onclick="saveStep('${stepId}')" ${!isUnlocked ? "disabled":""}>Speichern</button>
             </div>
 
-            <div>
-              <b>Historie</b>
-              ${histHTML}
-            </div>
+            <div><b>Historie</b>${histHTML}</div>
 
           </div>
           <hr>
@@ -274,13 +248,11 @@ function listenSteps() {
 }
 
 
-// 🔧 Substep ändern
+// 🔧 Substeps
 async function toggleSubstep(stepId, key, value) {
 
   const ref = db.collection("products")
-    .doc(id)
-    .collection("steps")
-    .doc(stepId);
+    .doc(id).collection("steps").doc(stepId);
 
   const snap = await ref.get();
   const data = snap.data();
@@ -288,18 +260,15 @@ async function toggleSubstep(stepId, key, value) {
   const substeps = data.substeps || {};
   substeps[key] = value;
 
-  // 🔥 prüfen ob alle Substeps erfüllt sind
-  const allDone = Object.values(substeps).every(v => v === true);
+  const allDone = Object.values(substeps).every(v => v);
 
   let newStatus = data.status;
-
-  // 🔥 AUTOMATISCHE LOGIK
   if (!allDone && data.status === "bestanden") {
     newStatus = "nicht bestanden";
   }
 
   await ref.update({
-    substeps: substeps,
+    substeps,
     status: newStatus
   });
 }
@@ -311,9 +280,18 @@ async function saveStep(stepId) {
   const user = document.getElementById(`user_${stepId}`).value.trim();
   const status = document.getElementById(`status_${stepId}`).value;
 
-  if (!user) {
-    alert("Bitte Namen eingeben!");
-    return;
+  if (!user) return alert("Bitte Namen eingeben!");
+
+  const snapshot = await db.collection("products")
+    .doc(id).collection("steps").get();
+
+  const allStepsData = {};
+  snapshot.forEach(doc => {
+    allStepsData[doc.id] = doc.data();
+  });
+
+  if (!isStepUnlocked(stepId, allStepsData)) {
+    return alert("Vorheriger Schritt nicht abgeschlossen!");
   }
 
   const ref = db.collection("products")
@@ -322,27 +300,24 @@ async function saveStep(stepId) {
   const snap = await ref.get();
   const data = snap.data();
 
-  // 🔥 Validierung Substeps
   if (data.substeps) {
-    const allDone = Object.values(data.substeps).every(v => v === true);
-
+    const allDone = Object.values(data.substeps).every(v => v);
     if (!allDone && status === "bestanden") {
-      alert("Alle Unterpunkte müssen erledigt sein!");
-      return;
+      return alert("Alle Unterpunkte müssen erledigt sein!");
     }
   }
 
   const time = new Date().toLocaleString();
 
   await ref.update({
-    status: status,
+    status,
     last_update: time,
     last_user: user
   });
 
   await ref.collection("history").add({
-    status: status,
-    user: user,
+    status,
+    user,
     timestamp: time
   });
 }
@@ -352,8 +327,7 @@ async function saveStep(stepId) {
 initSteps()
   .then(() => listenSteps())
   .catch(err => {
-    contentDiv.innerHTML = "❌ Fehler beim Start: " + err.message;
-    console.error(err);
+    contentDiv.innerHTML = "❌ Fehler: " + err.message;
   });
 
 </script>
