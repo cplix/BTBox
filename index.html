@@ -54,6 +54,15 @@
       color:#555;
     }
 
+    #roleSelection {
+      text-align:center;
+    }
+
+    #roleSelection button {
+      margin:10px;
+      width:200px;
+    }
+
     table { width:100%; border-collapse:collapse; margin-top:10px; }
     td, th { border:1px solid #ddd; padding:5px; }
   </style>
@@ -67,6 +76,13 @@
 
 <div style="margin-bottom:20px;">
   <a href="dashboard.html">⬅️ Zum Dashboard</a>
+</div>
+
+<!-- 🔥 Rollenauswahl -->
+<div id="roleSelection" class="card">
+  <h3>Rolle wählen</h3>
+  <button onclick="selectRole('viewer')">👁 Anzeigen</button>
+  <button onclick="selectRole('editor')">🛠 Prüfen</button>
 </div>
 
 <div id="content" class="card">Verbinde...</div>
@@ -84,19 +100,14 @@ const db = firebase.firestore();
 
 const params = new URLSearchParams(window.location.search);
 const id = params.get("id") || "id001";
-const role = params.get("role") || "viewer"; // viewer oder editor
+
+// 🔥 Rolle wird dynamisch gesetzt
+let role = null;
 
 const contentDiv = document.getElementById("content");
 
 
-// 🔥 Rollenanzeige
-document.getElementById("roleInfo").innerHTML =
-  role === "editor"
-    ? "🛠 Rolle: Prüfer (Bearbeiten erlaubt)"
-    : "👁 Rolle: Viewer (Nur Lesen)";
-
-
-// 🔥 Produktname laden
+// 🔥 Produktname
 async function loadProductName() {
   try {
     const snap = await db.collection("products").doc(id).get();
@@ -105,10 +116,27 @@ async function loadProductName() {
 
     document.getElementById("productTitle").innerHTML =
       "Produkt: <b>" + name + "</b> (" + id + ")";
-  } catch (err) {
+  } catch {
     document.getElementById("productTitle").innerHTML =
       "Produkt: <b>" + id + "</b>";
   }
+}
+
+
+// 🔥 Rolle wählen
+function selectRole(selectedRole) {
+
+  role = selectedRole;
+
+  document.getElementById("roleSelection").style.display = "none";
+  document.getElementById("content").style.display = "block";
+
+  document.getElementById("roleInfo").innerHTML =
+    role === "editor"
+      ? "🛠 Rolle: Prüfer (Bearbeiten erlaubt)"
+      : "👁 Rolle: Viewer (Nur Lesen)";
+
+  startApp();
 }
 
 
@@ -356,16 +384,22 @@ async function saveStep(stepId) {
 }
 
 
-// Start
-initSteps()
-  .then(() => {
-    loadProductName();
-    listenSteps();
-  })
-  .catch(err => {
-    contentDiv.innerHTML = "❌ Fehler: " + err.message;
-    console.error(err);
-  });
+// 🔥 Start nach Rollenauswahl
+function startApp() {
+  initSteps()
+    .then(() => {
+      loadProductName();
+      listenSteps();
+    })
+    .catch(err => {
+      contentDiv.innerHTML = "❌ Fehler: " + err.message;
+      console.error(err);
+    });
+}
+
+
+// 🔥 Initialzustand
+document.getElementById("content").style.display = "none";
 
 </script>
 
