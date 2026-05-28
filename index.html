@@ -143,17 +143,26 @@ function listenSteps() {
 
         // 🔥 Substeps UI
         let substepsHTML = "";
-        if (step.substeps) {
-          for (const [k,v] of Object.entries(step.substeps)) {
-            substepsHTML += `
-              <label>
-                <input type="checkbox"
-                  ${v ? "checked":""}
-                  onchange="toggleSubstep('${stepId}','${k}',this.checked)">
-                ${k}
-              </label><br>
-            `;
-          }
+
+        const orderedSubsteps = subStepsConfig[stepId] || [];
+
+        let i = 1;
+
+        for (const key of orderedSubsteps) {
+
+          const value = step.substeps ? step.substeps[key] : false;
+
+          substepsHTML += `
+            <label>
+              ${i}. 
+              <input type="checkbox"
+                ${value ? "checked":""}
+                onchange="toggleSubstep('${stepId}','${key}',this.checked)">
+              ${key}
+            </label><br>
+          `;
+
+          i++;
         }
 
         // 🔥 Historie
