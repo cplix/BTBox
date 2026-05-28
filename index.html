@@ -54,6 +54,7 @@
 <body>
 
 <h1>🔊 BT Box – Prozessstatus</h1>
+<h2 id="productTitle"></h2>
 <div style="margin-bottom:20px;">
   <a href="dashboard.html">⬅️ Zum Dashboard</a>
 </div>
@@ -71,6 +72,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const id = new URLSearchParams(window.location.search).get("id") || "id001";
+document.getElementById("productTitle").innerHTML = "Produkt-ID: <b>" + id + "</b>";
 const contentDiv = document.getElementById("content");
 
 const stepOrder = [
