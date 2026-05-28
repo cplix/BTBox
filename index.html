@@ -126,7 +126,46 @@ function listenSteps() {
     .collection("steps")
     .onSnapshot(async (snapshot) => {
 
-      let html = "";
+      let totalSteps = stepOrder.length;
+      let completedSteps = 0;
+
+      // zählen
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.status === "bestanden") {
+          completedSteps++;
+        }
+      });
+
+      const percent = Math.round((completedSteps / totalSteps) * 100);
+
+      let progressHTML = `
+        <div style="margin-bottom:20px;">
+          <b>Fortschritt: ${completedSteps} / ${totalSteps}</b><br>
+
+          <div style="
+            width:100%;
+            background:#ddd;
+            border-radius:5px;
+            overflow:hidden;
+            height:20px;
+            margin-top:5px;
+          ">
+            <div style="
+              width:${percent}%;
+              background:#27ae60;
+              height:100%;
+              text-align:center;
+              color:white;
+              font-size:12px;
+            ">
+              ${percent}%
+            </div>
+          </div>
+        </div>
+      `;
+
+      let html = progressHTML;
       const docs = snapshot.docs;
 
       docs.sort((a,b) =>
