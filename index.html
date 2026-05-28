@@ -27,9 +27,12 @@ button { margin-top:10px; padding:6px 12px; }
 
 <h1>🔊 BT Box – Prozessstatus</h1>
 <h2 id="productTitle"></h2>
+
 <div style="margin-bottom:20px;">
   <a href="dashboard.html">⬅️ Zum Dashboard</a>
 </div>
+
+<div id="productData" class="card" style="margin-bottom:20px; display:none;"></div>
 
 <div id="roleSelection" class="card">
   <h3>Rolle wählen</h3>
@@ -42,7 +45,7 @@ button { margin-top:10px; padding:6px 12px; }
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+  apiKey: "AIzaSy...",
   authDomain: "i40-btbox.firebaseapp.com",
   projectId: "i40-btbox"
 };
@@ -81,6 +84,55 @@ async function loadProductName(){
     `Produkt: <b>${d.name||id}</b> (${id})`;
 }
 
+
+// 🔥 JSON extern laden (RICHTIGE TRENNUNG!)
+async function loadProductData(){
+
+  try {
+    const res = await fetch(`data/${id}.json`);
+    if (!res.ok) throw new Error("keine Datei");
+
+    const d = await res.json();
+
+    let html = "<h3>📦 Produktdaten</h3>";
+
+    if (d.manufacturing) {
+
+      html += "<b>Fertigung</b><br>";
+
+      if (d.manufacturing["3d_print"]) {
+        const p = d.manufacturing["3d_print"];
+        html += `
+          3D-Druck: ${p.component}<br>
+          Material: ${p.material}<br>
+          Layer: ${p.layer_height}<br>
+          Infill: ${p.infill}<br><br>
+        `;
+      }
+
+      if (d.manufacturing["cnc"]) {
+        const c = d.manufacturing["cnc"];
+        html += `
+          CNC: ${c.component}<br>
+          Material: ${c.material}<br><br>
+        `;
+      }
+    }
+
+    if (d.link?.cad) {
+      html += `<b>CAD:</b> <a href="${d.link.cad}" target="_blank">öffnen</a>`;
+    }
+
+    const div = document.getElementById("productData");
+    div.innerHTML = html;
+    div.style.display = "block";
+
+  } catch {
+    // kein JSON → einfach nichts anzeigen
+  }
+}
+
+
 function isStepUnlocked(stepId,data){
   const i = stepOrder.indexOf(stepId);
   if(i===0) return true;
@@ -111,34 +163,29 @@ async function initSteps(){
   }
 }
 
+
+// 🔥 HAUPTLOGIK
 function listenSteps(){
 
   db.collection("products").doc(id)
     .collection("steps")
-    .onSnapshot(async snap=>{
+    .onSnapshot(snap=>{
 
       const allStepsData={};
       snap.docs.forEach(d=>allStepsData[d.id]=d.data());
 
-      // 🔥 QUALITÄT AUTOMATISCH
+      // 🔥 QUALITÄT AUTOMATISCH (SCHNELL & OHNE EXTRA READ)
       const endabnahme = allStepsData["Endabnahme"];
-      const productRef = db.collection("products").doc(id);
-
-      if(endabnahme && endabnahme.status==="bestanden"){
-        await productRef.set({
-          quality_status:"freigegeben",
-          quality_date:endabnahme.last_update||"",
-          quality_user:endabnahme.last_user||""
-        },{merge:true});
-      } else {
-        await productRef.set({
-          quality_status:"nicht freigegeben"
-        },{merge:true});
-      }
+      db.collection("products").doc(id).set({
+        quality_status: (endabnahme && endabnahme.status==="bestanden")
+          ? "freigegeben"
+          : "nicht freigegeben",
+        quality_date: endabnahme?.last_update || "",
+        quality_user: endabnahme?.last_user || ""
+      },{merge:true});
 
       let html="";
 
-      // 🔥 HIER IST DER WICHTIGE FIX
       const orderedDocs = stepOrder.map(stepName =>
         snap.docs.find(d => d.id === stepName)
       ).filter(Boolean);
@@ -151,7 +198,8 @@ function listenSteps(){
 
         let statusClass="fail";
         if(step.status==="bestanden") statusClass="ok";
-        else if(step.substeps && Object.values(step.substeps).some(v=>v)) statusClass="inprogress";
+        else if(step.substeps && Object.values(step.substeps).some(v=>v))
+          statusClass="inprogress";
 
         let subHTML="";
         let i=1;
@@ -289,6 +337,7 @@ async function saveStep(stepId){
 function startApp(){
   initSteps().then(()=>{
     loadProductName();
+    loadProductData(); // 🔥 externes JSON
     listenSteps();
   });
 }
