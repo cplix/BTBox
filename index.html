@@ -78,7 +78,6 @@
   <a href="dashboard.html">⬅️ Zum Dashboard</a>
 </div>
 
-<!-- 🔥 Rollenauswahl -->
 <div id="roleSelection" class="card">
   <h3>Rolle wählen</h3>
   <button onclick="selectRole('bearbeitung')">🛠 Bearbeitung</button>
@@ -98,15 +97,13 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const params = new URLSearchParams(window.location.search);
-const id = params.get("id") || "id001";
+const id = new URLSearchParams(window.location.search).get("id") || "id001";
 
 let role = null;
-
 const contentDiv = document.getElementById("content");
 
 
-// 🔥 Produktname
+// Produktname
 async function loadProductName() {
   try {
     const snap = await db.collection("products").doc(id).get();
@@ -122,7 +119,7 @@ async function loadProductName() {
 }
 
 
-// 🔥 Rolle wählen
+// Rolle wählen
 function selectRole(selectedRole) {
 
   role = selectedRole;
@@ -159,13 +156,11 @@ const subStepsConfig = {
 function isStepUnlocked(stepId, allStepsData) {
   const index = stepOrder.indexOf(stepId);
   if (index === 0) return true;
-
-  const prevStep = stepOrder[index - 1];
-  return allStepsData[prevStep]?.status === "bestanden";
+  return allStepsData[stepOrder[index - 1]]?.status === "bestanden";
 }
 
 
-// 🔧 Initialisierung
+// Initialisierung
 async function initSteps() {
 
   const productRef = db.collection("products").doc(id);
@@ -185,19 +180,16 @@ async function initSteps() {
         status: "nicht bestanden",
         last_update: "",
         last_user: "",
-        substeps: substeps
+        substeps
       });
-    } else {
-      const data = snap.data() || {};
-      if (!data.substeps) {
-        await ref.update({ substeps: substeps });
-      }
+    } else if (!snap.data()?.substeps) {
+      await ref.update({ substeps });
     }
   }
 }
 
 
-// 🔥 Anzeige
+// Anzeige
 function listenSteps() {
 
   db.collection("products").doc(id)
@@ -207,9 +199,7 @@ function listenSteps() {
       const docs = snapshot.docs;
 
       const allStepsData = {};
-      docs.forEach(doc => {
-        allStepsData[doc.id] = doc.data();
-      });
+      docs.forEach(doc => allStepsData[doc.id] = doc.data());
 
       let completed = docs.filter(d => d.data().status === "bestanden").length;
       let percent = Math.round((completed / stepOrder.length) * 100);
@@ -225,9 +215,7 @@ function listenSteps() {
         </div>
       `;
 
-      docs.sort((a,b) =>
-        stepOrder.indexOf(a.id) - stepOrder.indexOf(b.id)
-      );
+      docs.sort((a,b) => stepOrder.indexOf(a.id) - stepOrder.indexOf(b.id));
 
       for (const docSnap of docs) {
 
@@ -246,14 +234,37 @@ function listenSteps() {
           statusText = "in Arbeit";
         }
 
+        // 🔥 Historie laden
+        const histSnap = await db.collection("products")
+          .doc(id)
+          .collection("steps")
+          .doc(stepId)
+          .collection("history")
+          .orderBy("timestamp", "desc")
+          .limit(5)
+          .get();
+
+        let histHTML = "<table><tr><th>Zeit</th><th>User</th><th>Rolle</th><th>Aktion</th></tr>";
+
+        histSnap.forEach(h => {
+          const d = h.data();
+          histHTML += `
+            <tr>
+              <td>${d.timestamp}</td>
+              <td>${d.user}</td>
+              <td>${d.role || "-"}</td>
+              <td>${d.action || "-"}</td>
+            </tr>
+          `;
+        });
+
+        histHTML += "</table>";
+
         let substepsHTML = "";
         let i = 1;
 
         for (const key of subStepsConfig[stepId] || []) {
-
-          const val = step.substeps && key in step.substeps
-            ? step.substeps[key]
-            : false;
+          const val = step.substeps?.[key] || false;
 
           substepsHTML += `
             <label>
@@ -294,6 +305,11 @@ function listenSteps() {
               <button onclick="saveStep('${stepId}')" ${( !isUnlocked || role === "pruefung") ? "disabled":""}>Speichern</button>
             </div>
 
+            <div>
+              <h4>Letzte Aktivitäten</h4>
+              ${histHTML}
+            </div>
+
           </div>
           <hr>
         `;
@@ -304,13 +320,13 @@ function listenSteps() {
 }
 
 
-// 🔧 Substeps
+// Substeps
 async function toggleSubstep(stepId, key, value) {
 
   if (role === "pruefung") return;
 
-  const ref = db.collection("products")
-    .doc(id).collection("steps").doc(stepId);
+  const ref = db.collection("products").doc(id)
+    .collection("steps").doc(stepId);
 
   const snap = await ref.get();
   const data = snap.data();
@@ -318,22 +334,23 @@ async function toggleSubstep(stepId, key, value) {
   const substeps = data.substeps || {};
   substeps[key] = value;
 
-  const allDone = Object.values(substeps).every(v => v);
+  await ref.update({ substeps });
 
-  let newStatus = data.status;
-  if (!allDone && data.status === "bestanden") {
-    newStatus = "nicht bestanden";
-  }
-
-  await ref.update({ substeps, status: newStatus });
+  await ref.collection("history").add({
+    status: value ? "erledigt" : "offen",
+    user: "System",
+    timestamp: new Date().toLocaleString(),
+    role,
+    action: `Unterpunkt "${key}" ${value ? "aktiviert" : "deaktiviert"}`
+  });
 }
 
 
-// 🔧 Speichern
+// Speichern
 async function saveStep(stepId) {
 
   if (role === "pruefung") {
-    alert("Keine Änderungen in der Prüfrolle erlaubt!");
+    alert("Keine Änderungen erlaubt!");
     return;
   }
 
@@ -342,30 +359,8 @@ async function saveStep(stepId) {
 
   if (!user) return alert("Bitte Namen eingeben!");
 
-  const snapshot = await db.collection("products")
-    .doc(id).collection("steps").get();
-
-  const allStepsData = {};
-  snapshot.forEach(doc => {
-    allStepsData[doc.id] = doc.data();
-  });
-
-  if (!isStepUnlocked(stepId, allStepsData)) {
-    return alert("Vorheriger Schritt nicht abgeschlossen!");
-  }
-
   const ref = db.collection("products")
     .doc(id).collection("steps").doc(stepId);
-
-  const snap = await ref.get();
-  const data = snap.data();
-
-  if (data.substeps) {
-    const allDone = Object.values(data.substeps).every(v => v);
-    if (!allDone && status === "bestanden") {
-      return alert("Alle Unterpunkte müssen erledigt sein!");
-    }
-  }
 
   const time = new Date().toLocaleString();
 
@@ -378,22 +373,19 @@ async function saveStep(stepId) {
   await ref.collection("history").add({
     status,
     user,
-    timestamp: time
+    timestamp: time,
+    role,
+    action: "Status geändert"
   });
 }
 
 
-// 🔥 Start
+// Start
 function startApp() {
-  initSteps()
-    .then(() => {
-      loadProductName();
-      listenSteps();
-    })
-    .catch(err => {
-      contentDiv.innerHTML = "❌ Fehler: " + err.message;
-      console.error(err);
-    });
+  initSteps().then(() => {
+    loadProductName();
+    listenSteps();
+  });
 }
 
 document.getElementById("content").style.display = "none";
