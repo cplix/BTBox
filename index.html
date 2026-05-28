@@ -102,7 +102,7 @@
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIza...",
+  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
   authDomain: "i40-btbox.firebaseapp.com",
   projectId: "i40-btbox",
 };
@@ -113,7 +113,8 @@ const db = firebase.firestore();
 const id = new URLSearchParams(window.location.search).get("id") || "id001";
 const contentDiv = document.getElementById("content");
 
-const steps = [
+// 🔥 EINMAL definieren reicht
+const stepOrder = [
   "Konstruktion",
   "Fertigung",
   "Vormontage",
@@ -122,10 +123,10 @@ const steps = [
 ];
 
 
-// 🔥 Initialisierung (falls noch nicht vorhanden)
+// 🔥 Initialisierung
 async function initSteps() {
 
-  for (const step of steps) {
+  for (const step of stepOrder) {
 
     const ref = db.collection("products").doc(id)
       .collection("steps").doc(step);
@@ -151,114 +152,134 @@ function listenSteps() {
     .collection("steps")
     .onSnapshot(async (snapshot) => {
 
-      let html = "";
+      try {
 
-      for (const doc of snapshot.docs) {
+        let html = "";
 
-        const step = doc.data();
-        const stepId = doc.id;
+        const docs = snapshot.docs;
 
-        const statusClass =
-          step.status === "bestanden" ? "ok" : "fail";
-
-        // 🔥 Historie laden
-        const histSnap = await db.collection("products")
-          .doc(id)
-          .collection("steps")
-          .doc(stepId)
-          .collection("history")
-          .orderBy("timestamp", "desc")
-          .get();
-
-        let histHTML = "<table><tr><th>Zeit</th><th>Status</th><th>User</th></tr>";
-
-        histSnap.forEach(h => {
-          const d = h.data();
-          histHTML += `
-            <tr>
-              <td>${d.timestamp}</td>
-              <td>${d.status}</td>
-              <td>${d.user}</td>
-            </tr>
-          `;
+        // 🔥 sortieren
+        docs.sort((a, b) => {
+          return stepOrder.indexOf(a.id) - stepOrder.indexOf(b.id);
         });
 
-        histHTML += "</table>";
+        for (const docSnap of docs) {
 
-        html += `
-          <div class="section">
+          const step = docSnap.data();
+          const stepId = docSnap.id;
 
-            <h3>${step.name}</h3>
+          const statusClass =
+            step.status === "bestanden" ? "ok" : "fail";
 
-            <div>
-              <span class="status ${statusClass}">
-                ${step.status}
-              </span>
+          // 🔥 Historie laden
+          const histSnap = await db.collection("products")
+            .doc(id)
+            .collection("steps")
+            .doc(stepId)
+            .collection("history")
+            .orderBy("timestamp", "desc")
+            .get();
+
+          let histHTML = "<table><tr><th>Zeit</th><th>Status</th><th>User</th></tr>";
+
+          histSnap.forEach(h => {
+            const d = h.data();
+            histHTML += `
+              <tr>
+                <td>${d.timestamp}</td>
+                <td>${d.status}</td>
+                <td>${d.user}</td>
+              </tr>
+            `;
+          });
+
+          histHTML += "</table>";
+
+          html += `
+            <div class="section">
+
+              <h3>${step.name}</h3>
+
+              <div>
+                <span class="status ${statusClass}">
+                  ${step.status}
+                </span>
+              </div>
+
+              <div>
+                Letzte Änderung:<br>
+                ${step.last_update || "-"}<br>
+                durch: ${step.last_user || "-"}
+              </div>
+
+              <div>
+                <input id="user_${stepId}" placeholder="Name">
+                
+                <select id="status_${stepId}">
+                  <option value="bestanden" ${step.status === "bestanden" ? "selected" : ""}>bestanden</option>
+                  <option value="nicht bestanden" ${step.status === "nicht bestanden" ? "selected" : ""}>nicht bestanden</option>
+                </select>
+
+                <button onclick="saveStep('${stepId}')">
+                  Speichern
+                </button>
+              </div>
+
+              <div>
+                <b>Historie</b>
+                ${histHTML}
+              </div>
+
             </div>
+            <hr>
+          `;
+        }
 
-            <div>
-              Letzte Änderung:<br>
-              ${step.last_update || "-"}<br>
-              durch: ${step.last_user || "-"}
-            </div>
+        contentDiv.innerHTML = html;
 
-            <div>
-              <input id="user_${stepId}" placeholder="Name">
-              
-              <select id="status_${stepId}">
-                <option value="bestanden">bestanden</option>
-                <option value="nicht bestanden">nicht bestanden</option>
-              </select>
-
-              <button onclick="saveStep('${stepId}')">
-                Speichern
-              </button>
-            </div>
-
-            <div>
-              <b>Historie</b>
-              ${histHTML}
-            </div>
-
-          </div>
-          <hr>
-        `;
+      } catch (err) {
+        contentDiv.innerHTML = "❌ Fehler beim Laden: " + err.message;
       }
 
-      contentDiv.innerHTML = html;
     });
 }
 
 
-// 🔧 Speichern pro Schritt
+// 🔧 Speichern
 async function saveStep(stepId) {
 
-  const user = document.getElementById(`user_${stepId}`).value.trim();
-  const status = document.getElementById(`status_${stepId}`).value;
+  try {
 
-  if (!user) {
-    alert("Bitte Namen eingeben!");
-    return;
+    const user = document.getElementById(`user_${stepId}`).value.trim();
+    const status = document.getElementById(`status_${stepId}`).value;
+
+    if (!user) {
+      alert("Bitte Namen eingeben!");
+      return;
+    }
+
+    const time = new Date().toLocaleString();
+
+    const ref = db.collection("products")
+      .doc(id)
+      .collection("steps")
+      .doc(stepId);
+
+    await ref.update({
+      status: status,
+      last_update: time,
+      last_user: user
+    });
+
+    await ref.collection("history").add({
+      status: status,
+      user: user,
+      timestamp: time
+    });
+
+  } catch (err) {
+    alert("❌ Fehler: " + err.message);
   }
-
-  const time = new Date().toLocaleString();
-
-  const ref = db.collection("products")
-    .doc(id)
-    .collection("steps")
-    .doc(stepId);
-
-  await ref.update({
-    status: status,
-    last_update: time,
-    last_user: user
-  });
-
-  await ref.collection("history").add({
-    status: status,
-    user: user,
-    timestamp: time
-  });
 }
 
 
