@@ -96,9 +96,13 @@ async function renderDashboard() {
 
     const percent = Math.round((completed / stepOrder.length) * 100);
 
-    let statusText = "🔴 offen";
-    if (percent === 100) statusText = "🟢 fertig";
-    else if (percent > 0) statusText = "🟡 in Arbeit";
+    let statusText = "🔴 nicht begonnen";
+
+    if (percent === 100) {
+      statusText = "🟢 abgeschlossen";
+    } else if (percent > 0) {
+      statusText = "🟡 in Arbeit";
+    }
 
     html += `
       <div class="card" onclick="openProduct('${pid}')">

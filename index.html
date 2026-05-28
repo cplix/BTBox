@@ -26,6 +26,8 @@
     .ok { background:#27ae60; }
     .fail { background:#e74c3c; }
 
+    .inprogress { background:#f1c40f; color:black; }
+
     input, select {
       padding:6px; margin-top:5px; width:100%; max-width:300px;
     }
@@ -183,7 +185,16 @@ function listenSteps() {
         const stepId = docSnap.id;
         const isUnlocked = isStepUnlocked(stepId, allStepsData);
 
-        const statusClass = step.status === "bestanden" ? "ok" : "fail";
+        let statusClass = "fail"; // rot
+        let statusText = "nicht bestanden";
+
+        if (step.status === "bestanden") {
+          statusClass = "ok"; // grün
+          statusText = "bestanden";
+        } else if (step.substeps && Object.values(step.substeps).some(v => v === true)) {
+          statusClass = "inprogress"; // gelb
+          statusText = "in Arbeit";
+        }
 
         let substepsHTML = "";
         let i = 1;
@@ -213,7 +224,7 @@ function listenSteps() {
             <h3>${stepId}</h3>
 
             <span class="status ${statusClass}">
-              ${step.status}
+              ${statusText}
             </span>
 
             <div>
