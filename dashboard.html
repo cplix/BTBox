@@ -39,6 +39,12 @@
       font-weight:bold;
       margin-top:5px;
     }
+
+    .activity {
+      font-size:0.85em;
+      color:#555;
+      margin-top:10px;
+    }
   </style>
 </head>
 
@@ -67,8 +73,46 @@ const stepOrder = [
 ];
 
 const listDiv = document.getElementById("list");
+
 let listeners = [];
 
+
+// 🔥 LETZTE AKTIVITÄT ERMITTELN
+async function getLastActivity(productId) {
+
+  let latest = null;
+
+  const stepsSnap = await db.collection("products")
+    .doc(productId)
+    .collection("steps")
+    .get();
+
+  for (const stepDoc of stepsSnap.docs) {
+
+    const histSnap = await db.collection("products")
+      .doc(productId)
+      .collection("steps")
+      .doc(stepDoc.id)
+      .collection("history")
+      .orderBy("timestamp", "desc")
+      .limit(1)
+      .get();
+
+    histSnap.forEach(h => {
+
+      const d = h.data();
+
+      if (!latest || d.timestamp > latest.timestamp) {
+        latest = d;
+      }
+    });
+  }
+
+  return latest;
+}
+
+
+// 🔥 DASHBOARD RENDERN
 async function renderDashboard() {
 
   const productsSnap = await db.collection("products").get();
@@ -97,16 +141,23 @@ async function renderDashboard() {
     const percent = Math.round((completed / stepOrder.length) * 100);
 
     let statusText = "🔴 nicht begonnen";
+    if (percent === 100) statusText = "🟢 abgeschlossen";
+    else if (percent > 0) statusText = "🟡 in Arbeit";
 
-    if (percent === 100) {
-      statusText = "🟢 abgeschlossen";
-    } else if (percent > 0) {
-      statusText = "🟡 in Arbeit";
+    // 🔥 NEU: letzte Aktivität
+    const last = await getLastActivity(pid);
+
+    let activityText = "Keine Aktivität";
+
+    if (last) {
+      activityText = `${last.user} – ${last.action} – ${last.timestamp}`;
     }
 
     html += `
-      <div class="card" data-id="${pid}">
-        <b>${pname}</b><br><small>${pid}</small>
+      <div class="card" onclick="openProduct('${pid}')">
+
+        <b>${pname}</b><br>
+        <small>${pid}</small>
 
         <div class="bar">
           <div class="bar-inner" style="width:${percent}%">
@@ -115,6 +166,12 @@ async function renderDashboard() {
         </div>
 
         <div class="status">${statusText}</div>
+
+        <div class="activity">
+          <b>Letzte Aktivität:</b><br>
+          ${activityText}
+        </div>
+
       </div>
     `;
   }
@@ -122,6 +179,8 @@ async function renderDashboard() {
   listDiv.innerHTML = html || "Keine Produkte vorhanden.";
 }
 
+
+// 🔥 REALTIME
 async function startRealtime() {
 
   const productsSnap = await db.collection("products").get();
@@ -145,24 +204,20 @@ async function startRealtime() {
 
   renderDashboard();
 
-  // 🔥 erkennt neue Produkte
+  // neue Produkte erkennen
   db.collection("products").onSnapshot(() => {
-    renderDashboard();
+    startRealtime();
   });
 }
 
+
+// 🔗 Navigation
 function openProduct(id) {
   window.location.href = `index.html?id=${id}`;
 }
 
-listDiv.addEventListener("click", (e) => {
-  const card = e.target.closest(".card");
-  if (!card) return;
 
-  const id = card.getAttribute("data-id");
-  if (id) openProduct(id);
-});
-
+// Start
 startRealtime();
 
 </script>
