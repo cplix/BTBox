@@ -81,6 +81,8 @@ async function renderDashboard() {
   for (const productDoc of productsSnap.docs) {
 
     const pid = productDoc.id;
+    const pdata = productDoc.data() || {};
+    const pname = pdata.name || pid;
 
     const stepsSnap = await db.collection("products")
       .doc(pid)
@@ -103,7 +105,7 @@ async function renderDashboard() {
 
     html += `
       <div class="card" onclick="openProduct('${pid}')">
-        <b>${pid}</b>
+        <b>${pname}</b><br><small>${pid}</small>
 
         <div class="bar">
           <div class="bar-inner" style="width:${percent}%">
@@ -134,6 +136,8 @@ async function startRealtime() {
   for (const productDoc of productsSnap.docs) {
 
     const pid = productDoc.id;
+    const pdata = productDoc.data() || {};
+    const pname = pdata.name || pid;
 
     const unsub = db.collection("products")
       .doc(pid)

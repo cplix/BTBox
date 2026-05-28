@@ -72,6 +72,18 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const id = new URLSearchParams(window.location.search).get("id") || "id001";
+async function loadProductName() {
+
+  const productRef = db.collection("products").doc(id);
+  const snap = await productRef.get();
+
+  const data = snap.data() || {};
+
+  const name = data.name || id;
+
+  document.getElementById("productTitle").innerHTML =
+    "Produkt: <b>" + name + "</b> (" + id + ")";
+}
 document.getElementById("productTitle").innerHTML = "Produkt-ID: <b>" + id + "</b>";
 const contentDiv = document.getElementById("content");
 
@@ -336,10 +348,10 @@ async function saveStep(stepId) {
 
 // Start
 initSteps()
-  .then(() => listenSteps())
-  .catch(err => {
-    contentDiv.innerHTML = "❌ Fehler: " + err.message;
-  });
+  .then(() => {
+    loadProductName();
+    listenSteps();
+  })
 
 </script>
 
