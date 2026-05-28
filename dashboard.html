@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>BT Box – Dashboard</title>
+  <title>BT Box – Realtime Dashboard</title>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -44,8 +44,8 @@
 
 <body>
 
-<h1>📊 Produktions-Dashboard</h1>
-<div id="list">Lade...</div>
+<h1>📊 Produktions-Dashboard (Live)</h1>
+<div id="list">Verbinde...</div>
 
 <script>
 
@@ -69,12 +69,10 @@ const stepOrder = [
 const listDiv = document.getElementById("list");
 
 
-// 🔥 AUTOMATISCH alle Produkte laden
-async function loadProducts() {
+// 🔥 Realtime Listener
+db.collection("products").onSnapshot(async (productsSnap) => {
 
   try {
-
-    const productsSnap = await db.collection("products").get();
 
     let html = "";
 
@@ -116,9 +114,7 @@ async function loadProducts() {
       `;
     }
 
-    if (!html) {
-      html = "Keine Produkte gefunden.";
-    }
+    if (!html) html = "Keine Produkte vorhanden.";
 
     listDiv.innerHTML = html;
 
@@ -126,17 +122,14 @@ async function loadProducts() {
     listDiv.innerHTML = "❌ Fehler: " + err.message;
     console.error(err);
   }
-}
+
+});
 
 
 // 🔗 Navigation
 function openProduct(id) {
   window.location.href = `index.html?id=${id}`;
 }
-
-
-// Start
-loadProducts();
 
 </script>
 
