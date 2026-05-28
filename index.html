@@ -199,7 +199,7 @@ async function initSteps() {
 }
 
 
-// Anzeige
+// 🔥 Anzeige
 function listenSteps() {
 
   db.collection("products").doc(id)
@@ -210,6 +210,33 @@ function listenSteps() {
 
       const allStepsData = {};
       docs.forEach(doc => allStepsData[doc.id] = doc.data());
+
+      // 🔥 AUTOMATISCHE QUALITÄTSPRÜFUNG (MIT SCHUTZ)
+      const endabnahme = allStepsData["Endabnahme"];
+
+      const productRef = db.collection("products").doc(id);
+      const productSnap = await productRef.get();
+      const productData = productSnap.data() || {};
+
+      if (endabnahme && endabnahme.status === "bestanden") {
+
+        if (productData.quality_status !== "freigegeben") {
+          await productRef.set({
+            quality_status: "freigegeben",
+            quality_date: endabnahme.last_update || "",
+            quality_user: endabnahme.last_user || ""
+          }, { merge: true });
+        }
+
+      } else {
+
+        if (productData.quality_status !== "nicht freigegeben") {
+          await productRef.set({
+            quality_status: "nicht freigegeben"
+          }, { merge: true });
+        }
+
+      }
 
       let completed = docs.filter(d => d.data().status === "bestanden").length;
       let percent = Math.round((completed / stepOrder.length) * 100);
@@ -322,7 +349,7 @@ async function toggleSubstep(stepId, key, value) {
 }
 
 
-// Speichern
+// Speichern (kein Qualitätscode mehr hier!)
 async function saveStep(stepId) {
 
   if (role === "pruefung") return alert("Keine Änderungen erlaubt!");
@@ -342,24 +369,6 @@ async function saveStep(stepId) {
     last_update: time,
     last_user: user
   });
-
-  // 🔥 Qualitätsfreigabe
-  if (stepId === "Endabnahme") {
-
-    const productRef = db.collection("products").doc(id);
-
-    if (status === "bestanden") {
-      await productRef.set({
-        quality_status: "freigegeben",
-        quality_date: time,
-        quality_user: user
-      }, { merge: true });
-    } else {
-      await productRef.set({
-        quality_status: "nicht freigegeben"
-      }, { merge: true });
-    }
-  }
 
   await ref.collection("history").add({
     status,
