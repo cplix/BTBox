@@ -90,11 +90,12 @@ async function initSteps() {
 
     const snap = await ref.get();
 
+    const substeps = {};
+    (subStepsConfig[step] || []).forEach(s => substeps[s] = false);
+
     if (!snap.exists) {
 
-      const substeps = {};
-      (subStepsConfig[step] || []).forEach(s => substeps[s] = false);
-
+      // 🔥 NEU anlegen
       await ref.set({
         name: step,
         status: "nicht bestanden",
@@ -102,6 +103,17 @@ async function initSteps() {
         last_user: "",
         substeps: substeps
       });
+
+    } else {
+
+      // 🔥 BESTEHENDE DOKUMENTE ERWEITERN
+      const data = snap.data();
+
+      if (!data.substeps) {
+        await ref.update({
+          substeps: substeps
+        });
+      }
     }
   }
 }
