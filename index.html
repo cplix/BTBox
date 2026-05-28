@@ -104,6 +104,12 @@ function isStepUnlocked(stepId, allStepsData) {
 
 // 🔧 Initialisierung
 async function initSteps() {
+  const productRef = db.collection("products").doc(id);
+
+  // 🔥 Produkt-Dokument sicherstellen
+  await productRef.set({
+    created: true
+  }, { merge: true });
   for (const step of stepOrder) {
 
     const ref = db.collection("products").doc(id)
