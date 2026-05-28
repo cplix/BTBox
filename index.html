@@ -95,7 +95,6 @@ async function initSteps() {
 
     if (!snap.exists) {
 
-      // 🔥 NEU anlegen
       await ref.set({
         name: step,
         status: "nicht bestanden",
@@ -106,13 +105,14 @@ async function initSteps() {
 
     } else {
 
-      // 🔥 BESTEHENDE DOKUMENTE ERWEITERN
-      const data = snap.data();
+      const data = snap.data() || {};   // 🔥 FIX
 
       if (!data.substeps) {
-        await ref.update({
-          substeps: substeps
-        });
+        try {
+          await ref.update({ substeps: substeps });
+        } catch (err) {
+          console.error("Update substeps fehlgeschlagen:", err);
+        }
       }
     }
   }
@@ -286,7 +286,12 @@ async function saveStep(stepId) {
 
 
 // Start
-initSteps().then(() => listenSteps());
+initSteps()
+  .then(() => listenSteps())
+  .catch(err => {
+    contentDiv.innerHTML = "❌ Fehler beim Start: " + err.message;
+    console.error(err);
+  });
 
 </script>
 
