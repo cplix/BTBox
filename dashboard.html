@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>BT Box – Dashboard</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    body { font-family: Arial; background:#f4f6f8; margin:40px; }
+
+    .card {
+      background:white;
+      padding:20px;
+      margin-bottom:15px;
+      border-radius:10px;
+      cursor:pointer;
+      box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    .bar {
+      background:#ddd;
+      height:20px;
+      border-radius:5px;
+      overflow:hidden;
+      margin-top:5px;
+    }
+
+    .bar-inner {
+      height:100%;
+      background:#27ae60;
+      color:white;
+      text-align:center;
+      font-size:12px;
+    }
+
+    .status {
+      font-weight:bold;
+      margin-top:5px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>📊 Produktions-Dashboard</h1>
+<div id="list">Lade...</div>
+
+<script>
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+  authDomain: "i40-btbox.firebaseapp.com",
+  projectId: "i40-btbox"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const stepOrder = [
+  "Konstruktion",
+  "Fertigung",
+  "Vormontage",
+  "Endmontage",
+  "Endabnahme"
+];
+
+const listDiv = document.getElementById("list");
+
+
+// 🔥 AUTOMATISCH alle Produkte laden
+async function loadProducts() {
+
+  try {
+
+    const productsSnap = await db.collection("products").get();
+
+    let html = "";
+
+    for (const productDoc of productsSnap.docs) {
+
+      const pid = productDoc.id;
+
+      const stepsSnap = await db.collection("products")
+        .doc(pid)
+        .collection("steps")
+        .get();
+
+      let completed = 0;
+
+      stepsSnap.forEach(doc => {
+        if (doc.data().status === "bestanden") {
+          completed++;
+        }
+      });
+
+      const percent = Math.round((completed / stepOrder.length) * 100);
+
+      let statusText = "🔴 offen";
+      if (percent === 100) statusText = "🟢 fertig";
+      else if (percent > 0) statusText = "🟡 in Arbeit";
+
+      html += `
+        <div class="card" onclick="openProduct('${pid}')">
+          <b>${pid}</b>
+
+          <div class="bar">
+            <div class="bar-inner" style="width:${percent}%">
+              ${percent}%
+            </div>
+          </div>
+
+          <div class="status">${statusText}</div>
+        </div>
+      `;
+    }
+
+    if (!html) {
+      html = "Keine Produkte gefunden.";
+    }
+
+    listDiv.innerHTML = html;
+
+  } catch (err) {
+    listDiv.innerHTML = "❌ Fehler: " + err.message;
+    console.error(err);
+  }
+}
+
+
+// 🔗 Navigation
+function openProduct(id) {
+  window.location.href = `index.html?id=${id}`;
+}
+
+
+// Start
+loadProducts();
+
+</script>
+
+</body>
+</html>
