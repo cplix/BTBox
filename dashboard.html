@@ -68,68 +68,96 @@ const stepOrder = [
 
 const listDiv = document.getElementById("list");
 
+let listeners = [];
 
-// 🔥 Realtime Listener
-db.collection("products").onSnapshot(async (productsSnap) => {
 
-  try {
+// 🔥 Dashboard neu berechnen
+async function renderDashboard() {
 
-    let html = "";
+  const productsSnap = await db.collection("products").get();
 
-    for (const productDoc of productsSnap.docs) {
+  let html = "";
 
-      const pid = productDoc.id;
+  for (const productDoc of productsSnap.docs) {
 
-      const stepsSnap = await db.collection("products")
-        .doc(pid)
-        .collection("steps")
-        .get();
+    const pid = productDoc.id;
 
-      let completed = 0;
+    const stepsSnap = await db.collection("products")
+      .doc(pid)
+      .collection("steps")
+      .get();
 
-      stepsSnap.forEach(doc => {
-        if (doc.data().status === "bestanden") {
-          completed++;
-        }
-      });
+    let completed = 0;
 
-      const percent = Math.round((completed / stepOrder.length) * 100);
+    stepsSnap.forEach(doc => {
+      if (doc.data().status === "bestanden") {
+        completed++;
+      }
+    });
 
-      let statusText = "🔴 offen";
-      if (percent === 100) statusText = "🟢 fertig";
-      else if (percent > 0) statusText = "🟡 in Arbeit";
+    const percent = Math.round((completed / stepOrder.length) * 100);
 
-      html += `
-        <div class="card" onclick="openProduct('${pid}')">
-          <b>${pid}</b>
+    let statusText = "🔴 offen";
+    if (percent === 100) statusText = "🟢 fertig";
+    else if (percent > 0) statusText = "🟡 in Arbeit";
 
-          <div class="bar">
-            <div class="bar-inner" style="width:${percent}%">
-              ${percent}%
-            </div>
+    html += `
+      <div class="card" onclick="openProduct('${pid}')">
+        <b>${pid}</b>
+
+        <div class="bar">
+          <div class="bar-inner" style="width:${percent}%">
+            ${percent}%
           </div>
-
-          <div class="status">${statusText}</div>
         </div>
-      `;
-    }
 
-    if (!html) html = "Keine Produkte vorhanden.";
-
-    listDiv.innerHTML = html;
-
-  } catch (err) {
-    listDiv.innerHTML = "❌ Fehler: " + err.message;
-    console.error(err);
+        <div class="status">${statusText}</div>
+      </div>
+    `;
   }
 
-});
+  if (!html) html = "Keine Produkte vorhanden.";
+
+  listDiv.innerHTML = html;
+}
+
+
+// 🔥 Realtime Setup
+async function startRealtime() {
+
+  const productsSnap = await db.collection("products").get();
+
+  // Alte Listener entfernen (wichtig!)
+  listeners.forEach(unsub => unsub());
+  listeners = [];
+
+  for (const productDoc of productsSnap.docs) {
+
+    const pid = productDoc.id;
+
+    const unsub = db.collection("products")
+      .doc(pid)
+      .collection("steps")
+      .onSnapshot(() => {
+        renderDashboard();
+      });
+
+    listeners.push(unsub);
+  }
+
+  // Initial anzeigen
+  renderDashboard();
+}
 
 
 // 🔗 Navigation
 function openProduct(id) {
   window.location.href = `index.html?id=${id}`;
 }
+
+
+// Start
+startRealtime();
 
 </script>
 
