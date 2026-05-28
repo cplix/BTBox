@@ -25,7 +25,6 @@
 
     .ok { background:#27ae60; }
     .fail { background:#e74c3c; }
-
     .inprogress { background:#f1c40f; color:black; }
 
     input, select {
@@ -49,6 +48,12 @@
       margin-top:5px;
     }
 
+    .roleinfo {
+      font-size:0.9em;
+      margin-bottom:10px;
+      color:#555;
+    }
+
     table { width:100%; border-collapse:collapse; margin-top:10px; }
     td, th { border:1px solid #ddd; padding:5px; }
   </style>
@@ -58,6 +63,7 @@
 
 <h1>🔊 BT Box – Prozessstatus</h1>
 <h2 id="productTitle"></h2>
+<div id="roleInfo" class="roleinfo"></div>
 
 <div style="margin-bottom:20px;">
   <a href="dashboard.html">⬅️ Zum Dashboard</a>
@@ -76,9 +82,21 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const id = new URLSearchParams(window.location.search).get("id") || "id001";
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id") || "id001";
+const role = params.get("role") || "viewer"; // viewer oder editor
+
 const contentDiv = document.getElementById("content");
 
+
+// 🔥 Rollenanzeige
+document.getElementById("roleInfo").innerHTML =
+  role === "editor"
+    ? "🛠 Rolle: Prüfer (Bearbeiten erlaubt)"
+    : "👁 Rolle: Viewer (Nur Lesen)";
+
+
+// 🔥 Produktname laden
 async function loadProductName() {
   try {
     const snap = await db.collection("products").doc(id).get();
@@ -92,6 +110,7 @@ async function loadProductName() {
       "Produkt: <b>" + id + "</b>";
   }
 }
+
 
 const stepOrder = [
   "Konstruktion",
@@ -109,6 +128,7 @@ const subStepsConfig = {
   "Endabnahme": []
 };
 
+
 function isStepUnlocked(stepId, allStepsData) {
   const index = stepOrder.indexOf(stepId);
   if (index === 0) return true;
@@ -117,10 +137,11 @@ function isStepUnlocked(stepId, allStepsData) {
   return allStepsData[prevStep]?.status === "bestanden";
 }
 
+
+// 🔧 Initialisierung
 async function initSteps() {
 
   const productRef = db.collection("products").doc(id);
-
   await productRef.set({ created: true }, { merge: true });
 
   for (const step of stepOrder) {
@@ -148,6 +169,8 @@ async function initSteps() {
   }
 }
 
+
+// 🔥 Anzeige
 function listenSteps() {
 
   db.collection("products").doc(id)
@@ -185,14 +208,14 @@ function listenSteps() {
         const stepId = docSnap.id;
         const isUnlocked = isStepUnlocked(stepId, allStepsData);
 
-        let statusClass = "fail"; // rot
+        let statusClass = "fail";
         let statusText = "nicht bestanden";
 
         if (step.status === "bestanden") {
-          statusClass = "ok"; // grün
+          statusClass = "ok";
           statusText = "bestanden";
-        } else if (step.substeps && Object.values(step.substeps).some(v => v === true)) {
-          statusClass = "inprogress"; // gelb
+        } else if (step.substeps && Object.values(step.substeps).some(v => v)) {
+          statusClass = "inprogress";
           statusText = "in Arbeit";
         }
 
@@ -210,7 +233,7 @@ function listenSteps() {
               ${i}.
               <input type="checkbox"
                 ${val ? "checked":""}
-                ${!isUnlocked ? "disabled":""}
+                ${(!isUnlocked || role === "viewer") ? "disabled":""}
                 onchange="toggleSubstep('${stepId}','${key}',this.checked)">
               ${key}
             </label><br>
@@ -236,12 +259,12 @@ function listenSteps() {
             <div><h4>Unterpunkte</h4>${substepsHTML}</div>
 
             <div>
-              <input id="user_${stepId}" placeholder="Name" ${!isUnlocked ? "disabled":""}>
-              <select id="status_${stepId}" ${!isUnlocked ? "disabled":""}>
+              <input id="user_${stepId}" placeholder="Name" ${( !isUnlocked || role === "viewer") ? "disabled":""}>
+              <select id="status_${stepId}" ${( !isUnlocked || role === "viewer") ? "disabled":""}>
                 <option value="bestanden">bestanden</option>
                 <option value="nicht bestanden">nicht bestanden</option>
               </select>
-              <button onclick="saveStep('${stepId}')" ${!isUnlocked ? "disabled":""}>Speichern</button>
+              <button onclick="saveStep('${stepId}')" ${( !isUnlocked || role === "viewer") ? "disabled":""}>Speichern</button>
             </div>
 
           </div>
@@ -253,7 +276,11 @@ function listenSteps() {
     });
 }
 
+
+// 🔧 Substeps
 async function toggleSubstep(stepId, key, value) {
+
+  if (role === "viewer") return;
 
   const ref = db.collection("products")
     .doc(id).collection("steps").doc(stepId);
@@ -274,7 +301,14 @@ async function toggleSubstep(stepId, key, value) {
   await ref.update({ substeps, status: newStatus });
 }
 
+
+// 🔧 Speichern
 async function saveStep(stepId) {
+
+  if (role === "viewer") {
+    alert("Nur Lesen erlaubt!");
+    return;
+  }
 
   const user = document.getElementById(`user_${stepId}`).value.trim();
   const status = document.getElementById(`status_${stepId}`).value;
@@ -321,6 +355,8 @@ async function saveStep(stepId) {
   });
 }
 
+
+// Start
 initSteps()
   .then(() => {
     loadProductName();
