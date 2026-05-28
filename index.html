@@ -27,6 +27,9 @@
     .fail { background:#e74c3c; }
     .inprogress { background:#f1c40f; color:black; }
 
+    .quality-ok { color:#27ae60; font-weight:bold; }
+    .quality-fail { color:#e74c3c; font-weight:bold; }
+
     input, select {
       padding:6px; margin-top:5px; width:100%; max-width:300px;
     }
@@ -103,19 +106,26 @@ let role = null;
 const contentDiv = document.getElementById("content");
 
 
-// Produktname
+// 🔥 Produktname + Qualitätsstatus
 async function loadProductName() {
-  try {
-    const snap = await db.collection("products").doc(id).get();
-    const data = snap.data() || {};
-    const name = data.name || id;
 
-    document.getElementById("productTitle").innerHTML =
-      "Produkt: <b>" + name + "</b> (" + id + ")";
-  } catch {
-    document.getElementById("productTitle").innerHTML =
-      "Produkt: <b>" + id + "</b>";
+  const snap = await db.collection("products").doc(id).get();
+  const data = snap.data() || {};
+
+  const name = data.name || id;
+  const quality = data.quality_status || "nicht freigegeben";
+
+  let qualityHTML = "";
+
+  if (quality === "freigegeben") {
+    qualityHTML = `🟢 <span class="quality-ok">Freigegeben</span>
+      <br><small>${data.quality_date || ""} / ${data.quality_user || ""}</small>`;
+  } else {
+    qualityHTML = `🔴 <span class="quality-fail">Nicht freigegeben</span>`;
   }
+
+  document.getElementById("productTitle").innerHTML =
+    `Produkt: <b>${name}</b> (${id})<br>${qualityHTML}`;
 }
 
 
@@ -129,7 +139,7 @@ function selectRole(selectedRole) {
 
   document.getElementById("roleInfo").innerHTML =
     role === "bearbeitung"
-      ? "🛠 Rolle: Bearbeitung (Änderungen erlaubt)"
+      ? "🛠 Rolle: Bearbeitung"
       : "🔍 Rolle: Prüfung (nur Lesen)";
 
   startApp();
@@ -234,32 +244,6 @@ function listenSteps() {
           statusText = "in Arbeit";
         }
 
-        // 🔥 Historie laden
-        const histSnap = await db.collection("products")
-          .doc(id)
-          .collection("steps")
-          .doc(stepId)
-          .collection("history")
-          .orderBy("timestamp", "desc")
-          .limit(5)
-          .get();
-
-        let histHTML = "<table><tr><th>Zeit</th><th>User</th><th>Rolle</th><th>Aktion</th></tr>";
-
-        histSnap.forEach(h => {
-          const d = h.data();
-          histHTML += `
-            <tr>
-              <td>${d.timestamp}</td>
-              <td>${d.user}</td>
-              <td>${d.role || "-"}</td>
-              <td>${d.action || "-"}</td>
-            </tr>
-          `;
-        });
-
-        histHTML += "</table>";
-
         let substepsHTML = "";
         let i = 1;
 
@@ -288,9 +272,7 @@ function listenSteps() {
               ${statusText}
             </span>
 
-            <div>
-              ${step.last_update || "-"} / ${step.last_user || "-"}
-            </div>
+            <div>${step.last_update || "-"} / ${step.last_user || "-"}</div>
 
             ${!isUnlocked ? "<div class='warning'>⚠️ Vorheriger Schritt nicht abgeschlossen</div>" : ""}
 
@@ -303,11 +285,6 @@ function listenSteps() {
                 <option value="nicht bestanden">nicht bestanden</option>
               </select>
               <button onclick="saveStep('${stepId}')" ${( !isUnlocked || role === "pruefung") ? "disabled":""}>Speichern</button>
-            </div>
-
-            <div>
-              <h4>Letzte Aktivitäten</h4>
-              ${histHTML}
             </div>
 
           </div>
@@ -334,25 +311,21 @@ async function toggleSubstep(stepId, key, value) {
   const substeps = data.substeps || {};
   substeps[key] = value;
 
-  await ref.update({ substeps });
+  const allDone = Object.values(substeps).every(v => v);
 
-  await ref.collection("history").add({
-    status: value ? "erledigt" : "offen",
-    user: "System",
-    timestamp: new Date().toLocaleString(),
-    role,
-    action: `Unterpunkt "${key}" ${value ? "aktiviert" : "deaktiviert"}`
-  });
+  let newStatus = data.status;
+  if (!allDone && data.status === "bestanden") {
+    newStatus = "nicht bestanden";
+  }
+
+  await ref.update({ substeps, status: newStatus });
 }
 
 
 // Speichern
 async function saveStep(stepId) {
 
-  if (role === "pruefung") {
-    alert("Keine Änderungen erlaubt!");
-    return;
-  }
+  if (role === "pruefung") return alert("Keine Änderungen erlaubt!");
 
   const user = document.getElementById(`user_${stepId}`).value.trim();
   const status = document.getElementById(`status_${stepId}`).value;
@@ -369,6 +342,24 @@ async function saveStep(stepId) {
     last_update: time,
     last_user: user
   });
+
+  // 🔥 Qualitätsfreigabe
+  if (stepId === "Endabnahme") {
+
+    const productRef = db.collection("products").doc(id);
+
+    if (status === "bestanden") {
+      await productRef.set({
+        quality_status: "freigegeben",
+        quality_date: time,
+        quality_user: user
+      }, { merge: true });
+    } else {
+      await productRef.set({
+        quality_status: "nicht freigegeben"
+      }, { merge: true });
+    }
+  }
 
   await ref.collection("history").add({
     status,

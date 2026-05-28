@@ -40,6 +40,9 @@
       margin-top:5px;
     }
 
+    .quality-ok { color:#27ae60; font-weight:bold; }
+    .quality-fail { color:#e74c3c; font-weight:bold; }
+
     .activity {
       font-size:0.85em;
       color:#555;
@@ -144,7 +147,15 @@ async function renderDashboard() {
     if (percent === 100) statusText = "🟢 abgeschlossen";
     else if (percent > 0) statusText = "🟡 in Arbeit";
 
-    // 🔥 NEU: letzte Aktivität
+    // 🔥 Qualitätsstatus
+    const quality = pdata.quality_status || "nicht freigegeben";
+
+    let qualityHTML = `<span class="quality-fail">🔴 nicht freigegeben</span>`;
+    if (quality === "freigegeben") {
+      qualityHTML = `<span class="quality-ok">🟢 freigegeben</span>`;
+    }
+
+    // 🔥 letzte Aktivität
     const last = await getLastActivity(pid);
 
     let activityText = "Keine Aktivität";
@@ -166,6 +177,8 @@ async function renderDashboard() {
         </div>
 
         <div class="status">${statusText}</div>
+
+        <div>${qualityHTML}</div>
 
         <div class="activity">
           <b>Letzte Aktivität:</b><br>
@@ -204,7 +217,7 @@ async function startRealtime() {
 
   renderDashboard();
 
-  // neue Produkte erkennen
+  // 🔥 erkennt neue Produkte sauber
   db.collection("products").onSnapshot(() => {
     startRealtime();
   });

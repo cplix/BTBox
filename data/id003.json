@@ -1,5 +1,5 @@
 {
-  "product_id": "id001",
+  "product_id": "id003",
   "version": "v3",
   "manufacturing": {
     "3d_print": {
@@ -12,6 +12,10 @@
       "component": "Deckel",
       "material": "Aluminium"
     }
+  },
+  "quality": {
+    "status": "bestanden",
+    "date": "2026-05-27"
   },
   "link": {
     "cad": "https://fusion-link-zum-modell"
