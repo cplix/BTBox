@@ -21,7 +21,9 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 
 button { margin-top:10px; padding:6px 12px; }
 button.ready { background:#27ae60; color:white; }
+
 .ready-text { color:#27ae60; font-weight:bold; margin-top:5px; }
+.mode-text { color:#2980b9; font-weight:bold; margin-bottom:10px; }
 </style>
 </head>
 
@@ -109,22 +111,18 @@ function selectRole(r){
 }
 
 async function loadProductName(){
-
   let productName = "Bluetooth-Box";
   let groupName = null;
 
   try {
     const res = await fetch(`data/${id}.json`);
-    if (res.ok) {
-      const json = await res.json();
-      if (json.product_name) productName = json.product_name;
-      if (json.group_name) groupName = json.group_name;
-    }
+    const json = await res.json();
+    if (json.product_name) productName = json.product_name;
+    if (json.group_name) groupName = json.group_name;
   } catch {}
 
   let html = `Produkt: <b>${productName}</b> (${id})`;
   if (groupName) html += `<br><small>Gruppe: ${groupName}</small>`;
-
   document.getElementById("productTitle").innerHTML = html;
 }
 
@@ -158,17 +156,14 @@ function isStepUnlocked(stepId,data){
 }
 
 async function initSteps(){
-
   const productRef = db.collection("products").doc(id);
   await productRef.set({created:true},{merge:true});
 
   await Promise.all(stepOrder.map(async step => {
-
     const ref = productRef.collection("steps").doc(step);
     const snap = await ref.get();
 
     if(!snap.exists){
-
       const substeps={};
       (subStepsConfig[step]||[]).forEach(s=>substeps[s.id]=false);
 
@@ -194,6 +189,10 @@ function processSnapshot(snap){
   snap.docs.forEach(d=>allStepsData[d.id]=d.data());
 
   let html="";
+
+  if(role==="pruefung"){
+    html += `<div class="mode-text">🔍 Prüfmodus aktiv</div>`;
+  }
 
   const orderedDocs = stepOrder.map(stepName =>
     snap.docs.find(d => d.id === stepName)
@@ -250,15 +249,19 @@ function processSnapshot(snap){
 
       ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
 
-      <input id="user_${stepId}" placeholder="Name" ${(!unlocked||role==="pruefung")?"disabled":""}>
+      <!-- 🔥 Prüfung darf bearbeiten -->
+      <input id="user_${stepId}" placeholder="Name"
+        ${(!unlocked || role!=="pruefung")?"disabled":""}>
 
-      <select id="status_${stepId}" ${(!unlocked||role==="bearbeitung")?"disabled":""}>
-        <option>bestanden</option>
-        <option>nicht bestanden</option>
+      <select id="status_${stepId}"
+        ${(!unlocked || role!=="pruefung")?"disabled":""}>
+        <option value="nicht bestanden" ${!allDone ? "selected" : ""}>nicht bestanden</option>
+        <option value="bestanden" ${allDone ? "" : "disabled"}>bestanden</option>
       </select>
 
-      <button class="${allDone ? "ready" : ""}" onclick="saveStep('${stepId}')"
-        ${(!unlocked || role==="bearbeitung")?"disabled":""}>
+      <button class="${allDone ? "ready" : ""}"
+        onclick="saveStep('${stepId}')"
+        ${(!unlocked || role!=="pruefung")?"disabled":""}>
         Speichern
       </button>
 
@@ -273,17 +276,13 @@ function processSnapshot(snap){
 }
 
 async function toggleSub(stepId){
-
   if(role==="pruefung") return;
 
   const ref = db.collection("products").doc(id)
     .collection("steps").doc(stepId);
 
   const config = subStepsConfig[stepId];
-
-  const checkboxes = document.querySelectorAll(
-    `input[onchange*="${stepId}"]`
-  );
+  const checkboxes = document.querySelectorAll(`input[onchange*="${stepId}"]`);
 
   const sub = {};
   let i=0;
@@ -293,14 +292,12 @@ async function toggleSub(stepId){
     i++;
   }
 
-  await ref.update({
-    substeps: sub
-  });
+  await ref.update({ substeps: sub });
 }
 
 async function saveStep(stepId){
 
-  if(role==="bearbeitung") return alert("Nur Prüfung darf Status setzen");
+  if(role!=="pruefung") return alert("Nur Prüfung darf Status setzen");
 
   const user=document.getElementById("user_"+stepId).value.trim();
   const status=document.getElementById("status_"+stepId).value;
