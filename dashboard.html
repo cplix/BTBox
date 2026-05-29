@@ -148,7 +148,6 @@ function getColor(percent){
 // 🔥 Substep Übersicht
 function renderSubstepsOverview(stepsSnap){
 
-  // 🔥 Map für schnellen Zugriff
   const stepMap = {};
   stepsSnap.forEach(doc=>{
     stepMap[doc.id] = doc.data();
@@ -164,16 +163,15 @@ function renderSubstepsOverview(stepsSnap){
   stepOrder.forEach(stepId => {
 
     const data = stepMap[stepId];
-    if(!data) return;
 
-    const prog = getSubstepProgress(data);
+    let percent = 0;
 
-    if(!prog){
-      html += `<div></div>`;
-      return;
+    if(data){
+      const prog = getSubstepProgress(data);
+      if(prog) percent = prog.percent;
     }
 
-    const color = getColor(prog.percent);
+    const color = getColor(percent);
 
     html += `
       <div style="text-align:center; font-size:11px;">
@@ -182,18 +180,17 @@ function renderSubstepsOverview(stepsSnap){
 
         <div class="sub-bar" style="margin-top:4px;">
           <div class="sub-bar-inner"
-            style="width:${prog.percent}%; background:${color}">
+            style="width:${percent}%; background:${color}">
           </div>
         </div>
 
-        ${prog.percent}%
+        ${percent}%
 
       </div>
     `;
   });
 
   html += `</div>`;
-
   return html;
 }
 
@@ -229,9 +226,14 @@ async function renderDashboard(){
 
       if(d.status === "bestanden") completed++;
 
-      if(d.last_activity){
-        if(!latest || d.last_activity.timestamp > latest.timestamp){
-          latest = d.last_activity;
+      if(d.last_update){
+
+        if(!latest || d.last_update > latest.timestamp){
+          latest = {
+            user: d.last_user,
+            action: "Status geändert",
+            timestamp: d.last_update
+          };
         }
       }
     });
