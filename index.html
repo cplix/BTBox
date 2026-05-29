@@ -80,10 +80,42 @@ function selectRole(r){
 
 // 🔥 Produktname
 async function loadProductName(){
+
+  let productName = "Bluetooth-Box"; // Default
+  let groupName = null;
+
+  // 🔥 JSON zuerst versuchen (richtige Quelle!)
+  try {
+    const res = await fetch(`data/${id}.json`);
+    if (res.ok) {
+      const json = await res.json();
+
+      if (json.product_name) {
+        productName = json.product_name;
+      }
+
+      if (json.group_name) {
+        groupName = json.group_name;
+      }
+    }
+  } catch {}
+
+  // 🔥 Fallback: Firestore (falls dort mal gepflegt)
   const snap = await db.collection("products").doc(id).get();
-  const d = snap.data()||{};
-  document.getElementById("productTitle").innerHTML =
-    `Produkt: <b>${d.name||id}</b> (${id})`;
+  const d = snap.data() || {};
+
+  if (d.name) {
+    productName = d.name;
+  }
+
+  // 🔥 Anzeige bauen
+  let html = `Produkt: <b>${productName}</b> (${id})`;
+
+  if (groupName) {
+    html += `<br><small>Gruppe: ${groupName}</small>`;
+  }
+
+  document.getElementById("productTitle").innerHTML = html;
 }
 
 //

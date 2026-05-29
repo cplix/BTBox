@@ -1,5 +1,7 @@
 {
   "product_id": "id002",
+  "product_name": "Bluetooth-Box",
+  "group_name": "Bentz",
   "version": "v3",
   "manufacturing": {
     "3d_print": {
