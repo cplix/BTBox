@@ -48,6 +48,16 @@
       color:#555;
       margin-top:10px;
     }
+
+    /* 🔥 NEU: Gruppen-Badge */
+    .group-badge {
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:5px;
+      font-size:0.75em;
+      color:white;
+      margin-top:3px;
+    }
   </style>
 </head>
 
@@ -79,8 +89,27 @@ const listDiv = document.getElementById("list");
 
 let listeners = [];
 
+// 🔥 Cache für JSON
+const metaCache = {};
 
+// 🎨 Farben für Gruppen
+const groupColors = {};
+const palette = ["#3498db","#9b59b6","#e67e22","#1abc9c","#e74c3c","#2ecc71"];
+
+function getGroupColor(group){
+  if(!group) return "#777";
+
+  if(!groupColors[group]){
+    const index = Object.keys(groupColors).length % palette.length;
+    groupColors[group] = palette[index];
+  }
+  return groupColors[group];
+}
+
+// 🔥 JSON laden (mit Cache)
 async function loadProductMeta(id){
+
+  if(metaCache[id]) return metaCache[id];
 
   try {
     const res = await fetch(`data/${id}.json`);
@@ -88,20 +117,28 @@ async function loadProductMeta(id){
 
     const json = await res.json();
 
-    return {
-      name: json.product_name || "Bluetooth-Box",
+    const meta = {
+      name: json.product_name || id,
       group: json.group_name || null
     };
 
+    metaCache[id] = meta;
+    return meta;
+
   } catch {
-    return {
-      name: "Bluetooth-Box",
+
+    const meta = {
+      name: id,
       group: null
     };
+
+    metaCache[id] = meta;
+    return meta;
   }
 }
 
-// 🔥 LETZTE AKTIVITÄT ERMITTELN
+
+// 🔥 LETZTE AKTIVITÄT
 async function getLastActivity(productId) {
 
   let latest = null;
@@ -136,18 +173,26 @@ async function getLastActivity(productId) {
 }
 
 
-// 🔥 DASHBOARD RENDERN
+// 🔥 DASHBOARD (OPTIMIERT)
 async function renderDashboard() {
 
   const productsSnap = await db.collection("products").get();
 
+  const productIds = productsSnap.docs.map(d => d.id);
+
+  // 🚀 NEU: JSON parallel laden
+  const metas = await Promise.all(
+    productIds.map(id => loadProductMeta(id))
+  );
+
   let html = "";
 
-  for (const productDoc of productsSnap.docs) {
+  for (let i = 0; i < productIds.length; i++) {
 
-    const pid = productDoc.id;
-    const pdata = productDoc.data() || {};
-    const meta = await loadProductMeta(pid);
+    const pid = productIds[i];
+    const meta = metas[i];
+    const pdata = productsSnap.docs[i].data() || {};
+
     const pname = meta.name;
     const group = meta.group;
 
@@ -159,9 +204,7 @@ async function renderDashboard() {
     let completed = 0;
 
     stepsSnap.forEach(doc => {
-      if (doc.data().status === "bestanden") {
-        completed++;
-      }
+      if (doc.data().status === "bestanden") completed++;
     });
 
     const percent = Math.round((completed / stepOrder.length) * 100);
@@ -170,7 +213,6 @@ async function renderDashboard() {
     if (percent === 100) statusText = "🟢 abgeschlossen";
     else if (percent > 0) statusText = "🟡 in Arbeit";
 
-    // 🔥 Qualitätsstatus
     const quality = pdata.quality_status || "nicht freigegeben";
 
     let qualityHTML = `<span class="quality-fail">🔴 nicht freigegeben</span>`;
@@ -178,21 +220,26 @@ async function renderDashboard() {
       qualityHTML = `<span class="quality-ok">🟢 freigegeben</span>`;
     }
 
-    // 🔥 letzte Aktivität
     const last = await getLastActivity(pid);
 
     let activityText = "Keine Aktivität";
-
     if (last) {
       activityText = `${last.user} – ${last.action} – ${last.timestamp}`;
     }
+
+    // 🎨 Gruppenfarbe
+    const groupColor = getGroupColor(group);
 
     html += `
       <div class="card" onclick="openProduct('${pid}')">
 
         <b>${pname}</b><br>
 
-        ${group ? `<small>Gruppe: ${group}</small><br>` : ""}
+        ${group ? `
+          <span class="group-badge" style="background:${groupColor}">
+            ${group}
+          </span><br>
+        ` : ""}
 
         <small>${pid}</small>
 
@@ -243,7 +290,6 @@ async function startRealtime() {
 
   renderDashboard();
 
-  // 🔥 erkennt neue Produkte sauber
   db.collection("products").onSnapshot(() => {
     startRealtime();
   });
@@ -256,7 +302,7 @@ function openProduct(id) {
 }
 
 
-// Start
+// START
 startRealtime();
 
 </script>
