@@ -20,7 +20,7 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
   border-left:6px solid #ccc;
 }
 
-/* 🔥 Gruppenfarben */
+/* Gruppenfarben */
 .group-Siemens { border-left-color:#3498db; }
 .group-Bentz { border-left-color:#e67e22; }
 .group-Zuse { border-left-color:#9b59b6; }
@@ -41,10 +41,7 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
   font-size:12px;
 }
 
-.status {
-  font-weight:bold;
-  margin-top:5px;
-}
+.status { font-weight:bold; margin-top:5px; }
 
 .quality-ok { color:#27ae60; font-weight:bold; }
 .quality-fail { color:#e74c3c; font-weight:bold; }
@@ -83,87 +80,36 @@ const stepOrder = [
 
 const listDiv = document.getElementById("list");
 
+let productMetaCache = {};
 let listeners = [];
 
-/* 🔥 CACHE für JSON */
-let productMetaCache = {};
+// 🔥 JSON PARALLEL
+async function loadAllMeta(ids){
 
-/* 🚀 PARALLEL JSON LOAD */
-async function loadAllProductMeta(ids){
-
-  const promises = ids.map(async id => {
-
+  const results = await Promise.all(ids.map(async id => {
     try {
       const res = await fetch(`data/${id}.json`);
-      if (!res.ok) throw new Error();
-
       const json = await res.json();
-
       return {
         id,
         name: json.product_name || "Bluetooth-Box",
         group: json.group_name || null
       };
-
     } catch {
-      return {
-        id,
-        name: "Bluetooth-Box",
-        group: null
-      };
+      return { id, name:"Bluetooth-Box", group:null };
     }
-  });
+  }));
 
-  const results = await Promise.all(promises);
-
-  results.forEach(r => {
-    productMetaCache[r.id] = r;
-  });
+  results.forEach(r => productMetaCache[r.id] = r);
 }
 
-/* 🔥 LETZTE AKTIVITÄT – OPTIMIERT */
-async function getLastActivity(productId){
-
-  let latest = null;
-
-  const stepsSnap = await db.collection("products")
-    .doc(productId)
-    .collection("steps")
-    .get();
-
-  const promises = stepsSnap.docs.map(stepDoc =>
-    db.collection("products")
-      .doc(productId)
-      .collection("steps")
-      .doc(stepDoc.id)
-      .collection("history")
-      .orderBy("timestamp","desc")
-      .limit(1)
-      .get()
-  );
-
-  const results = await Promise.all(promises);
-
-  results.forEach(snap=>{
-    snap.forEach(h=>{
-      const d = h.data();
-      if(!latest || d.timestamp > latest.timestamp){
-        latest = d;
-      }
-    });
-  });
-
-  return latest;
-}
-
-/* 🚀 DASHBOARD */
+// 🚀 RENDER
 async function renderDashboard(){
 
   const productsSnap = await db.collection("products").get();
   const ids = productsSnap.docs.map(d=>d.id);
 
-  // 🔥 JSON parallel laden
-  await loadAllProductMeta(ids);
+  await loadAllMeta(ids);
 
   let html = "";
 
@@ -182,9 +128,19 @@ async function renderDashboard(){
       .get();
 
     let completed = 0;
+    let latest = null;
 
     stepsSnap.forEach(doc=>{
-      if(doc.data().status === "bestanden") completed++;
+      const d = doc.data();
+
+      if(d.status === "bestanden") completed++;
+
+      // 🔥 HIER DER BOOST
+      if(d.last_activity){
+        if(!latest || d.last_activity.timestamp > latest.timestamp){
+          latest = d.last_activity;
+        }
+      }
     });
 
     const percent = Math.round((completed / stepOrder.length) * 100);
@@ -200,23 +156,18 @@ async function renderDashboard(){
       qualityHTML = `<span class="quality-ok">🟢 freigegeben</span>`;
     }
 
-    const last = await getLastActivity(pid);
-
     let activityText = "Keine Aktivität";
-    if(last){
-      activityText = `${last.user} – ${last.action} – ${last.timestamp}`;
+    if(latest){
+      activityText = `${latest.user} – ${latest.action} – ${latest.timestamp}`;
     }
 
-    // 🔥 Gruppenklasse
     const groupClass = group ? `group-${group}` : "";
 
     html += `
       <div class="card ${groupClass}" onclick="openProduct('${pid}')">
 
         <b>${pname}</b><br>
-
         ${group ? `<small>Gruppe: ${group}</small><br>` : ""}
-
         <small>${pid}</small>
 
         <div class="bar">
@@ -226,7 +177,6 @@ async function renderDashboard(){
         </div>
 
         <div class="status">${statusText}</div>
-
         <div>${qualityHTML}</div>
 
         <div class="activity">
@@ -241,12 +191,12 @@ async function renderDashboard(){
   listDiv.innerHTML = html || "Keine Produkte vorhanden.";
 }
 
-/* 🔥 REALTIME */
+// 🔥 REALTIME
 async function startRealtime(){
 
   const productsSnap = await db.collection("products").get();
 
-  listeners.forEach(unsub => unsub());
+  listeners.forEach(unsub=>unsub());
   listeners = [];
 
   for(const productDoc of productsSnap.docs){
