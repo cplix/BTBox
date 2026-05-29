@@ -80,6 +80,27 @@ const listDiv = document.getElementById("list");
 let listeners = [];
 
 
+async function loadProductMeta(id){
+
+  try {
+    const res = await fetch(`data/${id}.json`);
+    if (!res.ok) throw new Error();
+
+    const json = await res.json();
+
+    return {
+      name: json.product_name || "Bluetooth-Box",
+      group: json.groupname || null
+    };
+
+  } catch {
+    return {
+      name: "Bluetooth-Box",
+      group: null
+    };
+  }
+}
+
 // 🔥 LETZTE AKTIVITÄT ERMITTELN
 async function getLastActivity(productId) {
 
@@ -126,7 +147,9 @@ async function renderDashboard() {
 
     const pid = productDoc.id;
     const pdata = productDoc.data() || {};
-    const pname = pdata.name || pid;
+    const meta = await loadProductMeta(pid);
+    const pname = meta.name;
+    const group = meta.group;
 
     const stepsSnap = await db.collection("products")
       .doc(pid)
@@ -168,6 +191,9 @@ async function renderDashboard() {
       <div class="card" onclick="openProduct('${pid}')">
 
         <b>${pname}</b><br>
+
+        ${group ? `<small>Gruppe: ${group}</small><br>` : ""}
+
         <small>${pid}</small>
 
         <div class="bar">
