@@ -81,47 +81,29 @@ function selectRole(r){
 // 🔥 Produktname
 async function loadProductName(){
 
-  let productName = "Bluetooth-Box"; // Default
+  let productName = "Bluetooth-Box";
   let groupName = null;
 
-  // 🔥 JSON zuerst versuchen (richtige Quelle!)
   try {
     const res = await fetch(`data/${id}.json`);
     if (res.ok) {
       const json = await res.json();
-
-      if (json.product_name) {
-        productName = json.product_name;
-      }
-
-      if (json.group_name) {
-        groupName = json.group_name;
-      }
+      if (json.product_name) productName = json.product_name;
+      if (json.group_name) groupName = json.group_name;
     }
   } catch {}
 
-  // 🔥 Fallback: Firestore (falls dort mal gepflegt)
   const snap = await db.collection("products").doc(id).get();
   const d = snap.data() || {};
+  if (d.name) productName = d.name;
 
-  if (d.name) {
-    productName = d.name;
-  }
-
-  // 🔥 Anzeige bauen
   let html = `Produkt: <b>${productName}</b> (${id})`;
-
-  if (groupName) {
-    html += `<br><small>Gruppe: ${groupName}</small>`;
-  }
+  if (groupName) html += `<br><small>Gruppe: ${groupName}</small>`;
 
   document.getElementById("productTitle").innerHTML = html;
 }
 
-//
-// 🔥 NEU: HYBRID RENDERER MIT LABELMAP
-//
-
+// 🔥 LABEL MAP
 const labelMap = {
   manufacturing: "Fertigung",
   "3d_print": "3D-Druck",
@@ -142,62 +124,36 @@ function getLabel(key){
        .replace(/\b\w/g, l => l.toUpperCase());
 }
 
-// 🔁 HYBRID RENDERING
+// 🔁 JSON Renderer
 function renderObject(obj, level = 0){
-
   let html = "";
 
   for(const key in obj){
-
     const value = obj[key];
     const label = getLabel(key);
 
     if(typeof value === "object" && value !== null){
-
-      html += `
-        <div style="margin-left:${level * 15}px; margin-top:8px;">
-          <b>${label}</b><br>
-          ${renderObject(value, level + 1)}
-        </div>
-      `;
-
+      html += `<div style="margin-left:${level*15}px;"><b>${label}</b><br>${renderObject(value, level+1)}</div>`;
     } else {
-
       if(typeof value === "string" && value.startsWith("http")){
-        html += `
-          <div style="margin-left:${level * 15}px;">
-            ${label}: <a href="${value}" target="_blank">öffnen</a>
-          </div>
-        `;
+        html += `<div style="margin-left:${level*15}px;">${label}: <a href="${value}" target="_blank">öffnen</a></div>`;
       } else {
-        html += `
-          <div style="margin-left:${level * 15}px;">
-            ${label}: ${value}
-          </div>
-        `;
+        html += `<div style="margin-left:${level*15}px;">${label}: ${value}</div>`;
       }
     }
   }
-
   return html;
 }
 
-// 📦 JSON laden
 async function loadProductData(){
-
   try {
     const res = await fetch(`data/${id}.json`);
     if (!res.ok) throw new Error();
-
     const d = await res.json();
 
-    let html = `<h3>📦 Produktdaten</h3>`;
-    html += renderObject(d);
-
     const div = document.getElementById("productData");
-    div.innerHTML = html;
+    div.innerHTML = `<h3>📦 Produktdaten</h3>` + renderObject(d);
     div.style.display = "block";
-
   } catch {}
 }
 
@@ -207,14 +163,12 @@ function isStepUnlocked(stepId,data){
   return data[stepOrder[i-1]]?.status==="bestanden";
 }
 
-// 🚀 INIT
 async function initSteps(){
 
   const productRef = db.collection("products").doc(id);
   await productRef.set({created:true},{merge:true});
 
   await Promise.all(stepOrder.map(async step => {
-
     const ref = productRef.collection("steps").doc(step);
     const snap = await ref.get();
 
@@ -229,102 +183,133 @@ async function initSteps(){
         last_user:""
       });
     }
-
   }));
 }
 
-// 🔥 REST UNVERÄNDERT
-// (listenSteps, toggleSub, saveStep, toggleHistory bleiben exakt gleich)
-
+// 🔥 SNAPSHOT (kein async direkt)
 function listenSteps(){
-
   db.collection("products").doc(id)
     .collection("steps")
-    .onSnapshot(async snap=>{
+    .onSnapshot(snap => processSnapshot(snap));
+}
 
-      const allStepsData={};
-      snap.docs.forEach(d=>allStepsData[d.id]=d.data());
+async function processSnapshot(snap){
 
-      const endabnahme = allStepsData["Endabnahme"];
-      const productRef = db.collection("products").doc(id);
+  const allStepsData={};
+  snap.docs.forEach(d=>allStepsData[d.id]=d.data());
 
-      const newStatus =
-        (endabnahme && endabnahme.status==="bestanden")
-          ? "freigegeben"
-          : "nicht freigegeben";
+  // Qualitätsstatus
+  const endabnahme = allStepsData["Endabnahme"];
+  const productRef = db.collection("products").doc(id);
 
-      const productSnap = await productRef.get();
-      const current = productSnap.data()?.quality_status;
+  const newStatus =
+    (endabnahme && endabnahme.status==="bestanden")
+      ? "freigegeben"
+      : "nicht freigegeben";
 
-      if(current !== newStatus){
-        await productRef.set({
-          quality_status:newStatus,
-          quality_date:endabnahme?.last_update||"",
-          quality_user:endabnahme?.last_user||""
-        },{merge:true});
-      }
+  const productSnap = await productRef.get();
+  const current = productSnap.data()?.quality_status;
 
-      let html="";
+  if(current !== newStatus){
+    await productRef.set({
+      quality_status:newStatus,
+      quality_date:endabnahme?.last_update||"",
+      quality_user:endabnahme?.last_user||""
+    },{merge:true});
+  }
 
-      const orderedDocs = stepOrder.map(stepName =>
-        snap.docs.find(d => d.id === stepName)
-      ).filter(Boolean);
+  let html="";
 
-      orderedDocs.forEach(docSnap=>{
+  const orderedDocs = stepOrder.map(stepName =>
+    snap.docs.find(d => d.id === stepName)
+  ).filter(Boolean);
 
-        const step = docSnap.data();
-        const stepId = docSnap.id;
-        const unlocked = isStepUnlocked(stepId,allStepsData);
+  orderedDocs.forEach(docSnap=>{
 
-        let statusClass="fail";
-        if(step.status==="bestanden") statusClass="ok";
-        else if(step.substeps && Object.values(step.substeps).some(v=>v))
-          statusClass="inprogress";
+    const step = docSnap.data();
+    const stepId = docSnap.id;
+    const unlocked = isStepUnlocked(stepId,allStepsData);
 
-        let subHTML="";
-        let i=1;
+    let statusClass="fail";
+    if(step.status==="bestanden") statusClass="ok";
+    else if(step.substeps && Object.values(step.substeps).some(v=>v))
+      statusClass="inprogress";
 
-        (subStepsConfig[stepId]||[]).forEach(key=>{
-          const val = step.substeps?.[key]||false;
+    let subHTML="";
+    let i=1;
 
-          subHTML += `
-            ${i}.
-            <input type="checkbox"
-              ${val?"checked":""}
-              ${(!unlocked || role==="pruefung")?"disabled":""}
-              onchange="toggleSub('${stepId}','${key}',this.checked)">
-            ${key}<br>
-          `;
-          i++;
-        });
+    (subStepsConfig[stepId]||[]).forEach(key=>{
+      const val = step.substeps?.[key]||false;
 
-        html += `
-        <div>
-          <h3>${stepId}</h3>
-          <span class="status ${statusClass}">${step.status}</span>
-          <div>${step.last_update||"-"} / ${step.last_user||"-"}</div>
-          ${!unlocked ? "<div class='warning'>Schritt gesperrt</div>" : ""}
-          <div>${subHTML}</div>
-
-          <input id="user_${stepId}" placeholder="Name" ${(!unlocked||role==="pruefung")?"disabled":""}>
-          <select id="status_${stepId}" ${(!unlocked||role==="pruefung")?"disabled":""}>
-            <option>bestanden</option>
-            <option>nicht bestanden</option>
-          </select>
-
-          <button onclick="saveStep('${stepId}')" ${(!unlocked||role==="pruefung")?"disabled":""}>
-            Speichern
-          </button>
-
-          <br>
-          <button onclick="toggleHistory('${stepId}')">📜 Historie</button>
-          <div id="hist_${stepId}" class="history">Lade...</div>
-        </div><hr>
-        `;
-      });
-
-      contentDiv.innerHTML=html;
+      subHTML += `
+        ${i}.
+        <input type="checkbox"
+          ${val?"checked":""}
+          ${(!unlocked || role==="pruefung")?"disabled":""}
+          onchange="toggleSub('${stepId}','${key}',this.checked)">
+        ${key}<br>
+      `;
+      i++;
     });
+
+    html += `
+    <div>
+      <h3>${stepId}</h3>
+      <span class="status ${statusClass}">${step.status}</span>
+      <div>${step.last_update||"-"} / ${step.last_user||"-"}</div>
+      ${!unlocked ? "<div class='warning'>Schritt gesperrt</div>" : ""}
+      <div>${subHTML}</div>
+
+      <input id="user_${stepId}" placeholder="Name" ${(!unlocked||role==="pruefung")?"disabled":""}>
+      <select id="status_${stepId}" ${(!unlocked||role==="pruefung")?"disabled":""}>
+        <option>bestanden</option>
+        <option>nicht bestanden</option>
+      </select>
+
+      <button onclick="saveStep('${stepId}')" ${(!unlocked||role==="pruefung")?"disabled":""}>
+        Speichern
+      </button>
+
+      <br>
+      <button onclick="toggleHistory('${stepId}')">📜 Historie</button>
+      <div id="hist_${stepId}" class="history">Lade...</div>
+    </div><hr>
+    `;
+  });
+
+  contentDiv.innerHTML=html;
+}
+
+// 🔥 FIXED toggleSub
+async function toggleSub(stepId,key,val){
+
+  if(role==="pruefung") return;
+
+  const ref = db.collection("products").doc(id)
+    .collection("steps").doc(stepId);
+
+  const checkboxes = document.querySelectorAll(
+    `input[onchange*="${stepId}"]`
+  );
+
+  const sub = {};
+  let i = 0;
+
+  for(const cb of checkboxes){
+    const label = subStepsConfig[stepId][i];
+    sub[label] = cb.checked;
+    i++;
+  }
+
+  sub[key] = val;
+
+  const allDone = Object.values(sub).every(v=>v);
+  const newStatus = allDone ? "bestanden" : "nicht bestanden";
+
+  await ref.update({
+    substeps: sub,
+    status: newStatus
+  });
 }
 
 async function saveStep(stepId){
@@ -334,9 +319,7 @@ async function saveStep(stepId){
   const user=document.getElementById("user_"+stepId).value.trim();
   const status=document.getElementById("status_"+stepId).value;
 
-  if(!user){
-    return alert("Bitte Namen eingeben!");
-  }
+  if(!user) return alert("Bitte Namen eingeben!");
 
   const ref=db.collection("products").doc(id)
     .collection("steps").doc(stepId);
