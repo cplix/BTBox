@@ -102,6 +102,41 @@ const subStepsConfig = {
   ]
 };
 
+// 🔥 LABEL MAP (anzeigeoptimiert)
+const labelMap = {
+  product_id: "Produkt-ID",
+  product_name: "Produktname",
+  group_name: "Gruppe",
+  version: "Variante",
+
+  manufacturing: "Fertigung",
+  "3d_print": "3D-Druck",
+  cnc: "CNC",
+
+  component: "Einzelteil",
+  material: "Material",
+  layer_height: "Schichthöhe",
+  perimeter: "Perimeter",
+  infill: "Infill",
+
+  link: "Links",
+  cad: "CAD-Link"
+};
+
+// 🔥 AUSBLEND-KONFIG (frei definierbar)
+const hiddenFields = [
+  "product_id", // Beispiel – kannst du jederzeit erweitern
+  "link"
+];
+
+// 🔥 LABEL HELPER
+function getLabel(key){
+  return labelMap[key] ||
+    key
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, l => l.toUpperCase());
+}
+
 function selectRole(r){
   role=r;
   document.getElementById("roleSelection").style.display="none";
@@ -127,15 +162,48 @@ async function loadProductName(){
 }
 
 function renderObject(obj, level = 0){
+
   let html = "";
+
   for(const key in obj){
+
+    // 🔥 AUSBLENDEN
+    if(hiddenFields.includes(key)) continue;
+
     const value = obj[key];
+    const label = getLabel(key);
+
     if(typeof value === "object" && value !== null){
-      html += `<div style="margin-left:${level*15}px;"><b>${key}</b><br>${renderObject(value, level+1)}</div>`;
+
+      html += `
+        <div style="margin-left:${level*15}px; margin-top:6px;">
+          <b>${label}</b><br>
+          ${renderObject(value, level+1)}
+        </div>
+      `;
+
     } else {
-      html += `<div style="margin-left:${level*15}px;">${key}: ${value}</div>`;
+
+      if(typeof value === "string" && value.startsWith("http")){
+
+        html += `
+          <div style="margin-left:${level*15}px;">
+            ${label}: <a href="${value}" target="_blank">öffnen</a>
+          </div>
+        `;
+
+      } else {
+
+        html += `
+          <div style="margin-left:${level*15}px;">
+            ${label}: ${value}
+          </div>
+        `;
+
+      }
     }
   }
+
   return html;
 }
 
