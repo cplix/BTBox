@@ -147,54 +147,55 @@ const subStepsConfig = {
   ]
 };
 
-// 🔥 LABEL MAP (anzeigeoptimiert)
-const labelMap = {
-  product_id: "Produkt-ID",
-  product_name: "Produktname",
-  group_name: "Gruppe",
-  version: "Variante",
+const displayConfig = {
 
-  manufacturing: "Fertigung",
-  "3d_print": "3D-Druck",
-  cnc: "CNC",
+  // 🔹 Basisdaten
+  product_id: { show:true, label:"Produkt-ID" },
+  product_name: { show:false, label:"Produktname" },
+  group_name: { show:false, label:"Gruppe" },
+  version: { show:true, label:"Variante" },
 
-  component: "Einzelteil",
-  material: "Material",
-  layer_height: "Schichthöhe",
-  perimeter: "Perimeter",
-  infill: "Infill",
+  // 🔹 Fertigung
+  manufacturing: { show:true, label:"Fertigung" },
+  "3d_print": { show:true, label:"3D-Druck" },
+  cnc: { show:true, label:"CNC" },
 
-  link: "Links",
-  cad: "CAD-Link"
+  // 🔹 Details
+  component: { show:true, label:"Einzelteil" },
+  material: { show:true, label:"Material" },
+  layer_height: { show:true, label:"Schichthöhe" },
+  perimeter: { show:true, label:"Perimeter" },
+  infill: { show:true, label:"Infill" },
+
+  // 🔹 Links
+  link: { show:true, label:"Links" },
+  cad: { show:true, label:"CAD-Link" }
 };
-
-// 🔥 AUSBLEND-KONFIG (frei definierbar)
-const hiddenFields = [
-  "product_name", // Beispiel – kannst du jederzeit erweitern
-  "group_name"
-];
 
 // 🔥 LABEL HELPER
 function getLabel(key){
-  return labelMap[key] ||
-    key
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, l => l.toUpperCase());
+  return displayConfig[key]?.label ||
+    key.replace(/_/g," ")
+       .replace(/\b\w/g,l=>l.toUpperCase());
+}
+
+function isVisible(key){
+  return displayConfig[key]?.show !== false;
 }
 
 function renderProductDataModern(data){
 
   let html = `<div class="data-grid">`;
 
-  // 📦 Basis
-  html += `
-    <div class="data-card">
-      <div class="data-title">📦 Produkt</div>
-      ${data.product_name || "-"}<br>
-      Gruppe: ${data.group_name || "-"}<br>
-      Variante: ${data.version || "-"}
-    </div>
-  `;
+  // 📦 Basis (mit hiddenFields)
+html += `
+  <div class="data-card">
+    <div class="data-title">📦 Produkt</div>
+    ${isVisible("product_name") ? `${data.product_name || "-"}<br>` : ""}
+    ${isVisible("group_name") ? `Gruppe: ${data.group_name || "-"}<br>` : ""}
+    ${isVisible("version") ? `Variante: ${data.version || "-"}` : ""}
+  </div>
+`;
 
   // ⚙️ Fertigung
   if(data.manufacturing){
@@ -277,7 +278,7 @@ function renderObject(obj, level = 0){
   for(const key in obj){
 
     // 🔥 AUSBLENDEN
-    if(hiddenFields.includes(key)) continue;
+    if(!isVisible(key)) continue;
 
     const value = obj[key];
     const label = getLabel(key);
