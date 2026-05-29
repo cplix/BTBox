@@ -24,6 +24,51 @@ button.ready { background:#27ae60; color:white; }
 
 .ready-text { color:#27ae60; font-weight:bold; margin-top:5px; }
 .mode-text { color:#2980b9; font-weight:bold; margin-bottom:10px; }
+
+/* 🔥 NEW: DATA UI */
+.data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.data-card {
+  background:#f9fafb;
+  padding:12px;
+  border-radius:8px;
+  border:1px solid #e0e0e0;
+}
+
+.data-title {
+  font-weight:bold;
+  margin-bottom:8px;
+  color:#2c3e50;
+}
+
+.sub-grid {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:10px;
+  margin-top:10px;
+}
+
+.sub-card {
+  background:white;
+  padding:10px;
+  border-radius:6px;
+  border:1px solid #ddd;
+}
+
+.data-btn {
+  display:inline-block;
+  margin-top:8px;
+  padding:6px 10px;
+  background:#3498db;
+  color:white;
+  text-decoration:none;
+  border-radius:5px;
+  font-size:12px;
+}
 </style>
 </head>
 
@@ -137,6 +182,70 @@ function getLabel(key){
       .replace(/\b\w/g, l => l.toUpperCase());
 }
 
+function renderProductDataModern(data){
+
+  let html = `<div class="data-grid">`;
+
+  // 📦 Basis
+  html += `
+    <div class="data-card">
+      <div class="data-title">📦 Produkt</div>
+      ${data.product_name || "-"}<br>
+      Gruppe: ${data.group_name || "-"}<br>
+      Variante: ${data.version || "-"}
+    </div>
+  `;
+
+  // ⚙️ Fertigung
+  if(data.manufacturing){
+
+    html += `
+      <div class="data-card">
+        <div class="data-title">⚙️ Fertigung</div>
+        <div class="sub-grid">
+    `;
+
+    if(data.manufacturing["3d_print"]){
+      const d = data.manufacturing["3d_print"];
+      html += `
+        <div class="sub-card">
+          🗜️ <b>3D-Druck</b><br>
+          Material: ${d.material || "-"}<br>
+          Schichthöhe: ${d.layer_height || "-"}<br>
+          Infill: ${d.infill || "-"}
+        </div>
+      `;
+    }
+
+    if(data.manufacturing["cnc"]){
+      const d = data.manufacturing["cnc"];
+      html += `
+        <div class="sub-card">
+          ⚙ <b>CNC</b><br>
+          Material: ${d.material || "-"}
+        </div>
+      `;
+    }
+
+    html += `</div></div>`;
+  }
+
+  // 🔗 Links
+  if(data.link){
+    html += `
+      <div class="data-card">
+        <div class="data-title">🔗 Links</div>
+        ${data.link.cad
+          ? `<a class="data-btn" href="${data.link.cad}" target="_blank">CAD öffnen</a>`
+          : "-"}
+      </div>
+    `;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
 function selectRole(r){
   role=r;
   document.getElementById("roleSelection").style.display="none";
@@ -212,7 +321,7 @@ async function loadProductData(){
     const res = await fetch(`data/${id}.json`);
     const d = await res.json();
     document.getElementById("productData").innerHTML =
-      `<h3>📦 Produktdaten</h3>` + renderObject(d);
+      `<h3>📦 Produktdaten</h3>` + renderProductDataModern(d);
     document.getElementById("productData").style.display = "block";
   } catch {}
 }
