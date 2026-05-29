@@ -20,6 +20,8 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 .warning { color:#e67e22; font-size:0.9em; }
 
 button { margin-top:10px; padding:6px 12px; }
+button.ready { background:#27ae60; color:white; }
+.ready-text { color:#27ae60; font-weight:bold; margin-top:5px; }
 </style>
 </head>
 
@@ -106,7 +108,6 @@ function selectRole(r){
   startApp();
 }
 
-// 🔥 Produktname
 async function loadProductName(){
 
   let productName = "Bluetooth-Box";
@@ -127,7 +128,6 @@ async function loadProductName(){
   document.getElementById("productTitle").innerHTML = html;
 }
 
-// JSON Renderer bleibt gleich
 function renderObject(obj, level = 0){
   let html = "";
   for(const key in obj){
@@ -157,7 +157,6 @@ function isStepUnlocked(stepId,data){
   return data[stepOrder[i-1]]?.status==="bestanden";
 }
 
-// INIT + MIGRATION
 async function initSteps(){
 
   const productRef = db.collection("products").doc(id);
@@ -183,7 +182,6 @@ async function initSteps(){
   }));
 }
 
-// SNAPSHOT
 function listenSteps(){
   db.collection("products").doc(id)
     .collection("steps")
@@ -206,19 +204,15 @@ function processSnapshot(snap){
     const step = docSnap.data();
     const stepId = docSnap.id;
     const unlocked = isStepUnlocked(stepId,allStepsData);
-
     const config = subStepsConfig[stepId] || [];
 
-    // 🔥 MIGRATION
     const substeps = {};
     config.forEach(item=>{
-      substeps[item.id] =
-        step.substeps?.[item.id] ??
-        step.substeps?.[item.label] ??
-        false;
+      substeps[item.id] = step.substeps?.[item.id] ?? false;
     });
 
     const allDone = Object.values(substeps).every(v=>v);
+
     const statusClass = step.status==="bestanden"
       ? "ok"
       : Object.values(substeps).some(v=>v)
@@ -245,6 +239,7 @@ function processSnapshot(snap){
     html += `
     <div>
       <h3>${stepId}</h3>
+
       <span class="status ${statusClass}">${step.status}</span>
 
       <div>${step.last_update||"-"} / ${step.last_user||"-"}</div>
@@ -253,13 +248,19 @@ function processSnapshot(snap){
 
       <div>${subHTML}</div>
 
+      ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
+
       <input id="user_${stepId}" placeholder="Name" ${(!unlocked||role==="pruefung")?"disabled":""}>
-      <select id="status_${stepId}" ${(!unlocked||role==="pruefung")?"disabled":""}>
+
+      <select id="status_${stepId}" ${(!unlocked||role==="bearbeitung")?"disabled":""}>
         <option>bestanden</option>
         <option>nicht bestanden</option>
       </select>
 
-      <button onclick="saveStep('${stepId}')">Speichern</button>
+      <button class="${allDone ? "ready" : ""}" onclick="saveStep('${stepId}')"
+        ${(!unlocked || role==="bearbeitung")?"disabled":""}>
+        Speichern
+      </button>
 
       <br>
       <button onclick="toggleHistory('${stepId}')">📜 Historie</button>
@@ -271,7 +272,6 @@ function processSnapshot(snap){
   contentDiv.innerHTML=html;
 }
 
-// 🔥 ID-basierte Speicherung
 async function toggleSub(stepId){
 
   if(role==="pruefung") return;
@@ -286,34 +286,31 @@ async function toggleSub(stepId){
   );
 
   const sub = {};
-
   let i=0;
+
   for(const cb of checkboxes){
     sub[config[i].id] = cb.checked;
     i++;
   }
 
-  const allDone = Object.values(sub).every(v=>v);
-
   await ref.update({
-    substeps: sub,
-    status: allDone ? "bestanden" : "nicht bestanden"
+    substeps: sub
   });
 }
 
 async function saveStep(stepId){
 
-  if(role==="pruefung") return alert("Keine Änderung erlaubt");
+  if(role==="bearbeitung") return alert("Nur Prüfung darf Status setzen");
 
   const user=document.getElementById("user_"+stepId).value.trim();
   const status=document.getElementById("status_"+stepId).value;
 
   if(!user) return alert("Bitte Namen eingeben!");
 
+  const time=new Date().toLocaleString();
+
   const ref=db.collection("products").doc(id)
     .collection("steps").doc(stepId);
-
-  const time=new Date().toLocaleString();
 
   await ref.update({
     status,
