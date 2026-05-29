@@ -264,9 +264,10 @@ async function renderDashboard(){
     html += `
       <div class="card ${groupClass}" onclick="openProduct('${pid}')">
 
-        <b>${pname}</b><br>
-        ${group ? `<small>Gruppe: ${group}</small><br>` : ""}
-        <small>${pid}</small>
+        <div style="margin-bottom:5px;">
+          <b>${pname} (${pid})</b>
+          ${group ? `<span style="color:#555;"> | Gruppe: ${group}</span>` : ""}
+        </div>
 
         <div class="bar">
           <div class="bar-inner" style="width:${percent}%">
