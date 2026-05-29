@@ -20,7 +20,6 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
   border-left:6px solid #ccc;
 }
 
-/* Gruppenfarben */
 .group-Siemens { border-left-color:#3498db; }
 .group-Bentz { border-left-color:#e67e22; }
 .group-Zuse { border-left-color:#9b59b6; }
@@ -50,6 +49,24 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
   font-size:0.85em;
   color:#555;
   margin-top:10px;
+}
+
+/* 🔥 Substep Styling */
+.substep-block {
+  margin-top:10px;
+  font-size:12px;
+}
+
+.sub-bar {
+  background:#ddd;
+  height:6px;
+  border-radius:4px;
+  margin-top:2px;
+}
+
+.sub-bar-inner {
+  height:100%;
+  border-radius:4px;
 }
 </style>
 </head>
@@ -103,6 +120,64 @@ async function loadAllMeta(ids){
   results.forEach(r => productMetaCache[r.id] = r);
 }
 
+// 🔥 Substep Progress
+function getSubstepProgress(stepData){
+
+  const sub = stepData.substeps || {};
+  const values = Object.values(sub);
+
+  if(values.length === 0) return null;
+
+  const done = values.filter(v => v).length;
+  const total = values.length;
+
+  return {
+    percent: Math.round((done / total) * 100),
+    done,
+    total
+  };
+}
+
+// 🔥 Farbe je Fortschritt
+function getColor(percent){
+  if(percent < 30) return "#e74c3c";
+  if(percent < 70) return "#f1c40f";
+  return "#27ae60";
+}
+
+// 🔥 Substep Übersicht
+function renderSubstepsOverview(stepsSnap){
+
+  let html = "";
+
+  stepsSnap.forEach(doc => {
+
+    const stepId = doc.id;
+    const data = doc.data();
+
+    const prog = getSubstepProgress(data);
+    if(!prog) return;
+
+    const color = getColor(prog.percent);
+
+    html += `
+      <div class="substep-block">
+        ${stepId}
+
+        <div class="sub-bar">
+          <div class="sub-bar-inner"
+            style="width:${prog.percent}%; background:${color}">
+          </div>
+        </div>
+
+        ${prog.done}/${prog.total} (${prog.percent}%)
+      </div>
+    `;
+  });
+
+  return html;
+}
+
 // 🚀 RENDER
 async function renderDashboard(){
 
@@ -135,7 +210,6 @@ async function renderDashboard(){
 
       if(d.status === "bestanden") completed++;
 
-      // 🔥 HIER DER BOOST
       if(d.last_activity){
         if(!latest || d.last_activity.timestamp > latest.timestamp){
           latest = d.last_activity;
@@ -163,6 +237,9 @@ async function renderDashboard(){
 
     const groupClass = group ? `group-${group}` : "";
 
+    // 🔥 NEU: Substeps
+    const substepsHTML = renderSubstepsOverview(stepsSnap);
+
     html += `
       <div class="card ${groupClass}" onclick="openProduct('${pid}')">
 
@@ -178,6 +255,8 @@ async function renderDashboard(){
 
         <div class="status">${statusText}</div>
         <div>${qualityHTML}</div>
+
+        ${substepsHTML}
 
         <div class="activity">
           <b>Letzte Aktivität:</b><br>
