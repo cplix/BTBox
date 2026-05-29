@@ -74,16 +74,20 @@ function selectRole(r){
   role=r;
   document.getElementById("roleSelection").style.display="none";
   contentDiv.style.display="block";
+
+  // 🔥 UX Verbesserung
+  contentDiv.scrollIntoView({ behavior: "smooth" });
+
   startApp();
 }
 
+// 🔥 Produktname
 async function loadProductName(){
   const snap = await db.collection("products").doc(id).get();
   const d = snap.data()||{};
   document.getElementById("productTitle").innerHTML =
     `Produkt: <b>${d.name||id}</b> (${id})`;
 }
-
 
 // 📦 JSON extern
 async function loadProductData(){
@@ -124,15 +128,13 @@ async function loadProductData(){
   } catch {}
 }
 
-
 function isStepUnlocked(stepId,data){
   const i = stepOrder.indexOf(stepId);
   if(i===0) return true;
   return data[stepOrder[i-1]]?.status==="bestanden";
 }
 
-
-// 🚀 INIT (parallelisiert)
+// 🚀 INIT (läuft direkt beim Laden!)
 async function initSteps(){
 
   const productRef = db.collection("products").doc(id);
@@ -158,8 +160,7 @@ async function initSteps(){
   }));
 }
 
-
-// 🔥 HAUPTLOGIK (ohne Loop!)
+// 🔥 HAUPTLOGIK
 function listenSteps(){
 
   db.collection("products").doc(id)
@@ -169,7 +170,7 @@ function listenSteps(){
       const allStepsData={};
       snap.docs.forEach(d=>allStepsData[d.id]=d.data());
 
-      // 🔥 Qualitätsstatus nur schreiben wenn nötig
+      // 🔥 Qualitätsstatus optimiert
       const endabnahme = allStepsData["Endabnahme"];
       const productRef = db.collection("products").doc(id);
 
@@ -260,8 +261,7 @@ function listenSteps(){
     });
 }
 
-
-// 🔧 SUBSTEP (ohne extra read!)
+// 🔧 SUBSTEP
 async function toggleSub(stepId,key,val){
 
   if(role==="pruefung") return;
@@ -287,7 +287,6 @@ async function toggleSub(stepId,key,val){
     status:newStatus
   });
 }
-
 
 // 🔧 SAVE
 async function saveStep(stepId){
@@ -331,7 +330,6 @@ async function saveStep(stepId){
   });
 }
 
-
 // 📜 HISTORIE
 async function toggleHistory(stepId){
 
@@ -366,14 +364,14 @@ async function toggleHistory(stepId){
   div.innerHTML=html;
 }
 
+// 🔥 Start: sofort laden (Fix!)
+initSteps();
+loadProductName();
+loadProductData();
 
-// START
+// nur Listener nach Rolle starten
 function startApp(){
-  initSteps().then(()=>{
-    loadProductName();
-    loadProductData();
-    listenSteps();
-  });
+  listenSteps();
 }
 
 contentDiv.style.display="none";
