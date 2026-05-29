@@ -71,6 +71,43 @@ button.ready { background:#27ae60; color:white; }
   font-size:12px;
   white-space:nowrap;
 }
+
+.step-card {
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+  border-left:6px solid #ddd;
+}
+
+.step-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.step-meta {
+  font-size:0.9em;
+  color:#555;
+  margin-bottom:15px;
+}
+
+.substeps {
+  margin-bottom:15px;
+  line-height:1.8;
+}
+
+.actions {
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
+.actions input,
+.actions select {
+  padding:6px;
+}
 </style>
 </head>
 
@@ -443,39 +480,47 @@ function processSnapshot(snap){
     });
 
     html += `
-    <div>
-      <h3>${stepId}</h3>
+    <div class="step-card">
 
-      <span class="status ${statusClass}">${step.status}</span>
+      <div class="step-header">
+        <h3>${stepId}</h3>
+        <span class="status ${statusClass}">${step.status}</span>
+      </div>
 
-      <div>${step.last_update||"-"} / ${step.last_user||"-"}</div>
+      <div class="step-meta">
+        ${step.last_update || "-"} / ${step.last_user || "-"}
+      </div>
 
       ${!unlocked ? "<div class='warning'>Schritt gesperrt</div>" : ""}
 
-      <div>${subHTML}</div>
+      <div class="substeps">
+        ${subHTML}
+      </div>
 
       ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
 
-      <!-- 🔥 Prüfung darf bearbeiten -->
-      <input id="user_${stepId}" placeholder="Name"
-        ${(!unlocked || role!=="pruefung")?"disabled":""}>
+      <div class="actions">
+        <input id="user_${stepId}" placeholder="Name"
+          ${(!unlocked || role!=="pruefung")?"disabled":""}>
 
-      <select id="status_${stepId}"
-        ${(!unlocked || role!=="pruefung")?"disabled":""}>
-        <option value="nicht bestanden" ${!allDone ? "selected" : ""}>nicht bestanden</option>
-        <option value="bestanden" ${allDone ? "" : "disabled"}>bestanden</option>
-      </select>
+        <select id="status_${stepId}"
+          ${(!unlocked || role!=="pruefung")?"disabled":""}>
+          <option value="nicht bestanden" ${!allDone ? "selected" : ""}>nicht bestanden</option>
+          <option value="bestanden" ${allDone ? "" : "disabled"}>bestanden</option>
+        </select>
 
-      <button class="${allDone ? "ready" : ""}"
-        onclick="saveStep('${stepId}')"
-        ${(!unlocked || role!=="pruefung")?"disabled":""}>
-        Speichern
-      </button>
+        <button class="${allDone ? "ready" : ""}"
+          onclick="saveStep('${stepId}')"
+          ${(!unlocked || role!=="pruefung")?"disabled":""}>
+          Speichern
+        </button>
+      </div>
 
       <br>
       <button onclick="toggleHistory('${stepId}')">📜 Historie</button>
       <div id="hist_${stepId}" class="history">Lade...</div>
-    </div><hr>
+
+    </div>
     `;
   });
 
