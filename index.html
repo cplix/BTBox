@@ -150,7 +150,7 @@ const subStepsConfig = {
 const displayConfig = {
 
   // 🔹 Basisdaten
-  product_id: { show:true, label:"Produkt-ID" },
+  product_id: { show:true, label:"Produkt-ID", highlight:true },
   product_name: { show:false, label:"Produktname" },
   group_name: { show:false, label:"Gruppe" },
   version: { show:true, label:"Variante" },
@@ -172,6 +172,13 @@ const displayConfig = {
   cad: { show:true, label:"CAD-Link" }
 };
 
+const displayOrder = [
+  "product_id",
+  "version",
+  "manufacturing",
+  "link"
+];
+
 // 🔥 LABEL HELPER
 function getLabel(key){
   return displayConfig[key]?.label ||
@@ -187,62 +194,82 @@ function renderProductDataModern(data){
 
   let html = `<div class="data-grid">`;
 
-  // 📦 Basis (mit hiddenFields)
-html += `
-<div class="data-card">
-  <div class="data-title">📦 Produkt</div>
-  ${isVisible("product_id") ? `${getLabel("product_id")}: ${data.product_id || id}<br>` : ""}
-  ${isVisible("product_name") ? `${data.product_name || "-"}<br>` : ""}
-  ${isVisible("group_name") ? `${getLabel("group_name")}: ${data.group_name || "-"}<br>` : ""}
-  ${isVisible("version") ? `${getLabel("version")}: ${data.version || "-"}` : ""}
-</div>
-`;
+  // 🔹 GENERISCH: Top-Level Felder
+  html += `<div class="data-card">
+    <div class="data-title">📦 Produkt</div>`;
 
-  // ⚙️ Fertigung
-  if(data.manufacturing){
+  (displayOrder.length ? displayOrder : Object.keys(displayConfig)).forEach(key => {
+
+    const cfg = displayConfig[key];
+    if(!cfg || cfg.show === false) return;
+
+    // nur primitive Werte hier
+    if(typeof data[key] === "object") return;
+
+    const value = data[key] ?? (key === "product_id" ? id : null);
+    if(value === null || value === undefined) return;
+
+    if(cfg.highlight){
+      html += `<div><b>${value}</b></div>`;
+    } else {
+      html += `<div>${cfg.label}: ${value}</div>`;
+    }
+
+  });
+
+  html += `</div>`;
+
+  // 🔹 GENERISCH: Objekte (z.B. manufacturing, link)
+  (displayOrder.length ? displayOrder : Object.keys(data)).forEach(sectionKey => {
+
+    const section = data[sectionKey];
+    if(typeof section !== "object" || section === null) return;
+    if(!isVisible(sectionKey)) return;
 
     html += `
       <div class="data-card">
-        <div class="data-title">⚙️ Fertigung</div>
+        <div class="data-title">${getLabel(sectionKey)}</div>
         <div class="sub-grid">
     `;
 
-    if(data.manufacturing["3d_print"]){
-      const d = data.manufacturing["3d_print"];
-      html += `
-        <div class="sub-card">
-          🗜️ <b>3D-Druck</b><br>
-          Material: ${d.material || "-"}<br>
-          Schichthöhe: ${d.layer_height || "-"}<br>
-          Infill: ${d.infill || "-"}
-        </div>
-      `;
-    }
+    Object.keys(section).forEach(subKey => {
 
-    if(data.manufacturing["cnc"]){
-      const d = data.manufacturing["cnc"];
-      html += `
-        <div class="sub-card">
-          ⚙ <b>CNC</b><br>
-          Material: ${d.material || "-"}
-        </div>
-      `;
-    }
+      if(!isVisible(subKey)) return;
+
+      const sub = section[subKey];
+
+      // 🔹 FALL: Objekt (z.B. 3d_print)
+      if(typeof sub === "object"){
+
+        html += `<div class="sub-card"><b>${getLabel(subKey)}</b><br>`;
+
+        Object.keys(sub).forEach(k => {
+          if(!isVisible(k)) return;
+
+          const v = sub[k];
+          if(typeof v === "string" && v.startsWith("http")){
+            html += `<a class="data-btn" href="${v}" target="_blank">${getLabel(k)}</a><br>`;
+          } else {
+            html += `${getLabel(k)}: ${v}<br>`;
+          }
+        });
+
+        html += `</div>`;
+      }
+
+      // 🔹 FALL: Link direkt
+      else if(typeof sub === "string" && sub.startsWith("http")){
+        html += `
+          <div class="sub-card">
+            <a class="data-btn" href="${sub}" target="_blank">${getLabel(subKey)}</a>
+          </div>
+        `;
+      }
+
+    });
 
     html += `</div></div>`;
-  }
-
-  // 🔗 Links
-  if(data.link){
-    html += `
-      <div class="data-card">
-        <div class="data-title">🔗 Links</div>
-        ${data.link.cad
-          ? `<a class="data-btn" href="${data.link.cad}" target="_blank">CAD öffnen</a>`
-          : "-"}
-      </div>
-    `;
-  }
+  });
 
   html += `</div>`;
   return html;
