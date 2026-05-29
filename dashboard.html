@@ -1,75 +1,71 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <title>BT Box – Realtime Dashboard</title>
+<meta charset="UTF-8">
+<title>BT Box – Realtime Dashboard</title>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
-  <style>
-    body { font-family: Arial; background:#f4f6f8; margin:40px; }
+<style>
+body { font-family: Arial; background:#f4f6f8; margin:40px; }
 
-    .card {
-      background:white;
-      padding:20px;
-      margin-bottom:15px;
-      border-radius:10px;
-      cursor:pointer;
-      box-shadow:0 2px 6px rgba(0,0,0,0.1);
-    }
+.card {
+  background:white;
+  padding:20px;
+  margin-bottom:15px;
+  border-radius:10px;
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  border-left:6px solid #ccc;
+}
 
-    .bar {
-      background:#ddd;
-      height:20px;
-      border-radius:5px;
-      overflow:hidden;
-      margin-top:5px;
-    }
+/* 🔥 Gruppenfarben */
+.group-Siemens { border-left-color:#3498db; }
+.group-Bentz { border-left-color:#e67e22; }
+.group-Zuse { border-left-color:#9b59b6; }
 
-    .bar-inner {
-      height:100%;
-      background:#27ae60;
-      color:white;
-      text-align:center;
-      font-size:12px;
-    }
+.bar {
+  background:#ddd;
+  height:20px;
+  border-radius:5px;
+  overflow:hidden;
+  margin-top:5px;
+}
 
-    .status {
-      font-weight:bold;
-      margin-top:5px;
-    }
+.bar-inner {
+  height:100%;
+  background:#27ae60;
+  color:white;
+  text-align:center;
+  font-size:12px;
+}
 
-    .quality-ok { color:#27ae60; font-weight:bold; }
-    .quality-fail { color:#e74c3c; font-weight:bold; }
+.status {
+  font-weight:bold;
+  margin-top:5px;
+}
 
-    .activity {
-      font-size:0.85em;
-      color:#555;
-      margin-top:10px;
-    }
+.quality-ok { color:#27ae60; font-weight:bold; }
+.quality-fail { color:#e74c3c; font-weight:bold; }
 
-    /* 🔥 NEU: Gruppen-Badge */
-    .group-badge {
-      display:inline-block;
-      padding:3px 8px;
-      border-radius:5px;
-      font-size:0.75em;
-      color:white;
-      margin-top:3px;
-    }
-  </style>
+.activity {
+  font-size:0.85em;
+  color:#555;
+  margin-top:10px;
+}
+</style>
 </head>
 
 <body>
 
 <h1>📊 Produktions-Dashboard (Live)</h1>
-<div id="list">Verbinde...</div>
+<div id="list">🔄 Lade Daten...</div>
 
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
+  apiKey: "AIzaSy...",
   authDomain: "i40-btbox.firebaseapp.com",
   projectId: "i40-btbox"
 };
@@ -89,57 +85,44 @@ const listDiv = document.getElementById("list");
 
 let listeners = [];
 
-// 🔥 Cache für JSON
-const metaCache = {};
+/* 🔥 CACHE für JSON */
+let productMetaCache = {};
 
-// 🎨 Farben für Gruppen
-const groupColors = {};
-const palette = ["#3498db","#9b59b6","#e67e22","#1abc9c","#e74c3c","#2ecc71"];
+/* 🚀 PARALLEL JSON LOAD */
+async function loadAllProductMeta(ids){
 
-function getGroupColor(group){
-  if(!group) return "#777";
+  const promises = ids.map(async id => {
 
-  if(!groupColors[group]){
-    const index = Object.keys(groupColors).length % palette.length;
-    groupColors[group] = palette[index];
-  }
-  return groupColors[group];
+    try {
+      const res = await fetch(`data/${id}.json`);
+      if (!res.ok) throw new Error();
+
+      const json = await res.json();
+
+      return {
+        id,
+        name: json.product_name || "Bluetooth-Box",
+        group: json.group_name || null
+      };
+
+    } catch {
+      return {
+        id,
+        name: "Bluetooth-Box",
+        group: null
+      };
+    }
+  });
+
+  const results = await Promise.all(promises);
+
+  results.forEach(r => {
+    productMetaCache[r.id] = r;
+  });
 }
 
-// 🔥 JSON laden (mit Cache)
-async function loadProductMeta(id){
-
-  if(metaCache[id]) return metaCache[id];
-
-  try {
-    const res = await fetch(`data/${id}.json`);
-    if (!res.ok) throw new Error();
-
-    const json = await res.json();
-
-    const meta = {
-      name: json.product_name || id,
-      group: json.group_name || null
-    };
-
-    metaCache[id] = meta;
-    return meta;
-
-  } catch {
-
-    const meta = {
-      name: id,
-      group: null
-    };
-
-    metaCache[id] = meta;
-    return meta;
-  }
-}
-
-
-// 🔥 LETZTE AKTIVITÄT
-async function getLastActivity(productId) {
+/* 🔥 LETZTE AKTIVITÄT – OPTIMIERT */
+async function getLastActivity(productId){
 
   let latest = null;
 
@@ -148,50 +131,47 @@ async function getLastActivity(productId) {
     .collection("steps")
     .get();
 
-  for (const stepDoc of stepsSnap.docs) {
-
-    const histSnap = await db.collection("products")
+  const promises = stepsSnap.docs.map(stepDoc =>
+    db.collection("products")
       .doc(productId)
       .collection("steps")
       .doc(stepDoc.id)
       .collection("history")
-      .orderBy("timestamp", "desc")
+      .orderBy("timestamp","desc")
       .limit(1)
-      .get();
+      .get()
+  );
 
-    histSnap.forEach(h => {
+  const results = await Promise.all(promises);
 
+  results.forEach(snap=>{
+    snap.forEach(h=>{
       const d = h.data();
-
-      if (!latest || d.timestamp > latest.timestamp) {
+      if(!latest || d.timestamp > latest.timestamp){
         latest = d;
       }
     });
-  }
+  });
 
   return latest;
 }
 
-
-// 🔥 DASHBOARD (OPTIMIERT)
-async function renderDashboard() {
+/* 🚀 DASHBOARD */
+async function renderDashboard(){
 
   const productsSnap = await db.collection("products").get();
+  const ids = productsSnap.docs.map(d=>d.id);
 
-  const productIds = productsSnap.docs.map(d => d.id);
-
-  // 🚀 NEU: JSON parallel laden
-  const metas = await Promise.all(
-    productIds.map(id => loadProductMeta(id))
-  );
+  // 🔥 JSON parallel laden
+  await loadAllProductMeta(ids);
 
   let html = "";
 
-  for (let i = 0; i < productIds.length; i++) {
+  for(const productDoc of productsSnap.docs){
 
-    const pid = productIds[i];
-    const meta = metas[i];
-    const pdata = productsSnap.docs[i].data() || {};
+    const pid = productDoc.id;
+    const pdata = productDoc.data() || {};
+    const meta = productMetaCache[pid] || {};
 
     const pname = meta.name;
     const group = meta.group;
@@ -203,43 +183,39 @@ async function renderDashboard() {
 
     let completed = 0;
 
-    stepsSnap.forEach(doc => {
-      if (doc.data().status === "bestanden") completed++;
+    stepsSnap.forEach(doc=>{
+      if(doc.data().status === "bestanden") completed++;
     });
 
     const percent = Math.round((completed / stepOrder.length) * 100);
 
     let statusText = "🔴 nicht begonnen";
-    if (percent === 100) statusText = "🟢 abgeschlossen";
-    else if (percent > 0) statusText = "🟡 in Arbeit";
+    if(percent === 100) statusText = "🟢 abgeschlossen";
+    else if(percent > 0) statusText = "🟡 in Arbeit";
 
     const quality = pdata.quality_status || "nicht freigegeben";
 
     let qualityHTML = `<span class="quality-fail">🔴 nicht freigegeben</span>`;
-    if (quality === "freigegeben") {
+    if(quality === "freigegeben"){
       qualityHTML = `<span class="quality-ok">🟢 freigegeben</span>`;
     }
 
     const last = await getLastActivity(pid);
 
     let activityText = "Keine Aktivität";
-    if (last) {
+    if(last){
       activityText = `${last.user} – ${last.action} – ${last.timestamp}`;
     }
 
-    // 🎨 Gruppenfarbe
-    const groupColor = getGroupColor(group);
+    // 🔥 Gruppenklasse
+    const groupClass = group ? `group-${group}` : "";
 
     html += `
-      <div class="card" onclick="openProduct('${pid}')">
+      <div class="card ${groupClass}" onclick="openProduct('${pid}')">
 
         <b>${pname}</b><br>
 
-        ${group ? `
-          <span class="group-badge" style="background:${groupColor}">
-            ${group}
-          </span><br>
-        ` : ""}
+        ${group ? `<small>Gruppe: ${group}</small><br>` : ""}
 
         <small>${pid}</small>
 
@@ -265,23 +241,22 @@ async function renderDashboard() {
   listDiv.innerHTML = html || "Keine Produkte vorhanden.";
 }
 
-
-// 🔥 REALTIME
-async function startRealtime() {
+/* 🔥 REALTIME */
+async function startRealtime(){
 
   const productsSnap = await db.collection("products").get();
 
   listeners.forEach(unsub => unsub());
   listeners = [];
 
-  for (const productDoc of productsSnap.docs) {
+  for(const productDoc of productsSnap.docs){
 
     const pid = productDoc.id;
 
     const unsub = db.collection("products")
       .doc(pid)
       .collection("steps")
-      .onSnapshot(() => {
+      .onSnapshot(()=>{
         renderDashboard();
       });
 
@@ -290,19 +265,15 @@ async function startRealtime() {
 
   renderDashboard();
 
-  db.collection("products").onSnapshot(() => {
+  db.collection("products").onSnapshot(()=>{
     startRealtime();
   });
 }
 
-
-// 🔗 Navigation
-function openProduct(id) {
+function openProduct(id){
   window.location.href = `index.html?id=${id}`;
 }
 
-
-// START
 startRealtime();
 
 </script>
