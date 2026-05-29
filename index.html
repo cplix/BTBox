@@ -327,6 +327,82 @@ function listenSteps(){
     });
 }
 
+async function saveStep(stepId){
+
+  if(role==="pruefung") return alert("Keine Änderung erlaubt");
+
+  const user=document.getElementById("user_"+stepId).value.trim();
+  const status=document.getElementById("status_"+stepId).value;
+
+  if(!user){
+    return alert("Bitte Namen eingeben!");
+  }
+
+  const ref=db.collection("products").doc(id)
+    .collection("steps").doc(stepId);
+
+  const snap = await ref.get();
+  const data = snap.data();
+
+  if(data.substeps){
+    const allDone = Object.values(data.substeps).every(v=>v);
+    if(!allDone && status==="bestanden"){
+      return alert("Alle Unterpunkte müssen erledigt sein!");
+    }
+  }
+
+  const time=new Date().toLocaleString();
+
+  await ref.update({
+    status,
+    last_update:time,
+    last_user:user
+  });
+
+  await ref.collection("history").add({
+    user,
+    timestamp:time,
+    status,
+    role,
+    action:"Status geändert"
+  });
+
+  alert("✔️ Gespeichert");
+}
+
+async function toggleHistory(stepId){
+
+  const div = document.getElementById("hist_"+stepId);
+
+  if(div.style.display==="block"){
+    div.style.display="none";
+    return;
+  }
+
+  div.style.display="block";
+  div.innerHTML="Lade...";
+
+  const snap = await db.collection("products")
+    .doc(id).collection("steps")
+    .doc(stepId).collection("history")
+    .orderBy("timestamp","desc").limit(10).get();
+
+  let html="<table><tr><th>Zeit</th><th>User</th><th>Status</th><th>Aktion</th></tr>";
+
+  snap.forEach(d=>{
+    const h=d.data();
+    html+=`<tr>
+      <td>${h.timestamp}</td>
+      <td>${h.user}</td>
+      <td>${h.status||"-"}</td>
+      <td>${h.action}</td>
+    </tr>`;
+  });
+
+  html+="</table>";
+  div.innerHTML=html;
+}
+
 // START
 initSteps();
 loadProductName();
