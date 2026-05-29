@@ -189,12 +189,13 @@ function renderProductDataModern(data){
 
   // 📦 Basis (mit hiddenFields)
 html += `
-  <div class="data-card">
-    <div class="data-title">📦 Produkt</div>
-    ${isVisible("product_name") ? `${data.product_name || "-"}<br>` : ""}
-    ${isVisible("group_name") ? `Gruppe: ${data.group_name || "-"}<br>` : ""}
-    ${isVisible("version") ? `Variante: ${data.version || "-"}` : ""}
-  </div>
+<div class="data-card">
+  <div class="data-title">📦 Produkt</div>
+  ${isVisible("product_id") ? `${getLabel("product_id")}: ${data.product_id || id}<br>` : ""}
+  ${isVisible("product_name") ? `${data.product_name || "-"}<br>` : ""}
+  ${isVisible("group_name") ? `${getLabel("group_name")}: ${data.group_name || "-"}<br>` : ""}
+  ${isVisible("version") ? `${getLabel("version")}: ${data.version || "-"}` : ""}
+</div>
 `;
 
   // ⚙️ Fertigung
