@@ -148,32 +148,51 @@ function getColor(percent){
 // 🔥 Substep Übersicht
 function renderSubstepsOverview(stepsSnap){
 
-  let html = "";
+  // 🔥 Map für schnellen Zugriff
+  const stepMap = {};
+  stepsSnap.forEach(doc=>{
+    stepMap[doc.id] = doc.data();
+  });
 
-  stepsSnap.forEach(doc => {
+  let html = `<div style="
+    display:grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap:8px;
+    margin-top:10px;
+  ">`;
 
-    const stepId = doc.id;
-    const data = doc.data();
+  stepOrder.forEach(stepId => {
+
+    const data = stepMap[stepId];
+    if(!data) return;
 
     const prog = getSubstepProgress(data);
-    if(!prog) return;
+
+    if(!prog){
+      html += `<div></div>`;
+      return;
+    }
 
     const color = getColor(prog.percent);
 
     html += `
-      <div class="substep-block">
-        ${stepId}
+      <div style="text-align:center; font-size:11px;">
 
-        <div class="sub-bar">
+        <b>${stepId}</b>
+
+        <div class="sub-bar" style="margin-top:4px;">
           <div class="sub-bar-inner"
             style="width:${prog.percent}%; background:${color}">
           </div>
         </div>
 
-        ${prog.done}/${prog.total} (${prog.percent}%)
+        ${prog.percent}%
+
       </div>
     `;
   });
+
+  html += `</div>`;
 
   return html;
 }
