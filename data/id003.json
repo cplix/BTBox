@@ -14,7 +14,8 @@
     "cnc": {
       "component": "Deckel",
       "material": "Aluminium"
-    },
+    }
+  },
   "link": {
     "cad": "https://fusion-link-zum-modell"
   }
