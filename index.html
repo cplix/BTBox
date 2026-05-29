@@ -30,6 +30,7 @@ button.ready { background:#27ae60; color:white; }
   display: grid;
   grid-template-columns: 30% 70%;
   gap: 15px;
+  align-items: start;
 }
 
 .data-card {
@@ -68,6 +69,7 @@ button.ready { background:#27ae60; color:white; }
   text-decoration:none;
   border-radius:5px;
   font-size:12px;
+  white-space:nowrap;
 }
 </style>
 </head>
@@ -210,11 +212,10 @@ function renderProductDataModern(data){
     if(value === null || value === undefined) return;
 
     if(cfg.highlight){
-      html += `<div><b>${value}</b></div>`;
+      html += `<div><b>${cfg.label}: ${value}</b></div>`;
     } else {
       html += `<div>${cfg.label}: ${value}</div>`;
     }
-
   });
 
   html += `</div>`;
