@@ -6,17 +6,13 @@
       "component": "Gehaeuse",
       "material": "PLA",
       "layer_height": "0.2 mm",
-      "infill": "Gyriod"
+      "perimeter": "3",
+      "infill": "Gitternetz"
     },
     "cnc": {
       "component": "Deckel",
       "material": "Aluminium"
-    }
-  },
-  "quality": {
-    "status": "bestanden",
-    "date": "2026-05-27"
-  },
+    },
   "link": {
     "cad": "https://fusion-link-zum-modell"
   }

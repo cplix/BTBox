@@ -1,0 +1,20 @@
+{
+  "product_id": "id002",
+  "version": "v3",
+  "manufacturing": {
+    "3d_print": {
+      "component": "Gehaeuse",
+      "material": "PLA",
+      "layer_height": "0.2 mm",
+      "perimeter": "2",
+      "infill": "Bienenwabe"
+    },
+    "cnc": {
+      "component": "Deckel",
+      "material": "Aluminium"
+    }
+  },
+  "link": {
+    "cad": "https://fusion-link-zum-modell"
+  }
+}
