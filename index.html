@@ -21,8 +21,24 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 .history { display:none; margin-top:10px; }
 .warning { color:#e67e22; font-size:0.9em; }
 
-button { margin-top:10px; padding:6px 12px; }
-button.ready { background:#27ae60; color:white; }
+button {
+  margin-top:10px;
+}
+
+.btn-primary {
+  padding:8px 14px;
+}
+
+button:not(.btn-primary) {
+  background:#ecf0f1;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+button:not(.btn-primary):hover {
+  background:#dfe6e9;
+}
 
 .ready-text { color:#27ae60; font-weight:bold; margin-top:5px; }
 .mode-text { color:#2980b9; font-weight:bold; margin-bottom:10px; }
@@ -229,7 +245,37 @@ button.ready { background:#27ae60; color:white; }
 
 /* optional: ready-Zustand leicht hervorheben */
 .btn-primary.ready {
-  border:2px solid #27ae60;   /* grüner Rahmen statt Fläche */
+  border:2px solid #27ae60;
+  box-shadow:0 0 0 2px rgba(39,174,96,0.2);
+}
+
+/* 🔥 TOAST */
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #2c3e50;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.success {
+  background: #27ae60;
+}
+
+.toast.error {
+  background: #e74c3c;
 }
 </style>
 </head>
@@ -378,6 +424,22 @@ function getStatusBadge(status){
   }
 
   return `<span class="badge badge-red">nicht begonnen</span>`;
+}
+
+function showToast(message, type="success"){
+
+  const toast = document.getElementById("toast");
+
+  toast.className = `toast ${type}`;
+  toast.innerText = message;
+
+  // trigger animation
+  setTimeout(()=>toast.classList.add("show"), 10);
+
+  // auto hide
+  setTimeout(()=>{
+    toast.classList.remove("show");
+  }, 2500);
 }
 
 function renderProductDataModern(data){
@@ -734,7 +796,21 @@ async function saveStep(stepId){
     action:"Status geändert"
   });
 
-  alert("✔️ Gespeichert");
+  const btn = document.querySelector(`button[onclick="saveStep('${stepId}')"]`);
+
+  if(btn){
+    const original = btn.innerText;
+
+    btn.innerText = "✔ Gespeichert";
+    btn.disabled = true;
+
+    setTimeout(()=>{
+      btn.innerText = original;
+      btn.disabled = false;
+    }, 2000);
+  }
+
+  showToast("✔ Gespeichert");
 }
 
 async function toggleHistory(stepId){
@@ -782,6 +858,6 @@ function startApp(){
 contentDiv.style.display="none";
 
 </script>
-
+<div id="toast" class="toast"></div>
 </body>
 </html>
