@@ -11,10 +11,12 @@
 body { font-family: Arial; background:#f4f6f8; margin:40px; }
 .card { background:white; padding:20px; border-radius:10px; max-width:700px; }
 
+/*
 .status { padding:5px 10px; border-radius:5px; color:white; font-weight:bold; }
 .ok { background:#27ae60; }
 .fail { background:#e74c3c; }
 .inprogress { background:#f1c40f; color:black; }
+*/
 
 .history { display:none; margin-top:10px; }
 .warning { color:#e67e22; font-size:0.9em; }
@@ -167,6 +169,40 @@ button.ready { background:#27ae60; color:white; }
   margin-top:10px;
   align-items:center;
 }
+
+/* 🔥 STATUS BADGES */
+.badge {
+  padding:4px 10px;
+  border-radius:12px;
+  font-size:12px;
+  font-weight:bold;
+  display:inline-block;
+}
+
+.badge-red {
+  background:#e74c3c;
+  color:white;
+}
+
+.badge-yellow {
+  background:#f1c40f;
+  color:black;
+}
+
+.badge-green {
+  background:#27ae60;
+  color:white;
+}
+
+.badge-blue {
+  background:#3498db;
+  color:white;
+}
+
+.progress-fill.done { background:#27ae60; }
+.progress-fill.ready { background:#f1c40f; }
+.progress-fill.progress { background:#3498db; }
+.progress-fill.empty { background:#e74c3c; }
 </style>
 </head>
 
@@ -286,6 +322,34 @@ function getLabel(key){
 
 function isVisible(key){
   return displayConfig[key]?.show !== false;
+}
+
+function getStatus(step, allDone){
+
+  if(step.status === "bestanden") return "done";
+
+  if(allDone) return "ready";
+
+  if(Object.values(step.substeps || {}).some(v=>v)) return "progress";
+
+  return "empty";
+}
+
+function getStatusBadge(status){
+
+  if(status === "done"){
+    return `<span class="badge badge-green">✔ bestanden</span>`;
+  }
+
+  if(status === "ready"){
+    return `<span class="badge badge-yellow">bereit zur Prüfung</span>`;
+  }
+
+  if(status === "progress"){
+    return `<span class="badge badge-blue">in Arbeit</span>`;
+  }
+
+  return `<span class="badge badge-red">nicht begonnen</span>`;
 }
 
 function renderProductDataModern(data){
@@ -517,12 +581,7 @@ function processSnapshot(snap){
     const total = Object.keys(substeps).length;
     const done = Object.values(substeps).filter(v=>v).length;
     const percent = Math.round((done / total) * 100);
-
-    const statusClass = step.status==="bestanden"
-      ? "ok"
-      : Object.values(substeps).some(v=>v)
-        ? "inprogress"
-        : "fail";
+    const status = getStatus(step, allDone);
 
     let subHTML = `<div class="substeps-inline">`;
 
@@ -550,12 +609,12 @@ html += `
 
     <div class="progress-container">
       <div class="progress-bar">
-        <div class="progress-fill" style="width:${percent}%"></div>
+        <div class="progress-fill ${status}" style="width:${percent}%"></div>
       </div>
       <div class="progress-text">${percent}%</div>
     </div>
 
-    <span class="status ${statusClass}">${step.status}</span>
+    ${getStatusBadge(status)}
   </div>
 
   <div class="step-meta">
@@ -566,7 +625,9 @@ html += `
 
   ${subHTML}
 
-  ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
+  ${(allDone && step.status !== "bestanden")
+    ? `<div class="ready-text">✔ bereit zur Prüfung</div>`
+    : ""}
 
   <div class="actions-row">
     <input id="user_${stepId}" placeholder="Name"
