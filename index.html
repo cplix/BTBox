@@ -108,6 +108,65 @@ button.ready { background:#27ae60; color:white; }
 .actions select {
   padding:6px;
 }
+
+.step-card {
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+.step-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px;
+}
+
+.progress-container {
+  flex:1;
+  margin:0 15px;
+}
+
+.progress-bar {
+  height:10px;
+  background:#e0e0e0;
+  border-radius:5px;
+  overflow:hidden;
+}
+
+.progress-fill {
+  height:100%;
+  background:#27ae60;
+  width:0%;
+  transition:width 0.3s;
+}
+
+.progress-text {
+  font-size:0.8em;
+  text-align:right;
+  margin-top:2px;
+}
+
+.substeps-inline {
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+  margin:10px 0;
+}
+
+.substep-item {
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.actions-row {
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+  align-items:center;
+}
 </style>
 </head>
 
@@ -455,6 +514,9 @@ function processSnapshot(snap){
     });
 
     const allDone = Object.values(substeps).every(v=>v);
+    const total = Object.keys(substeps).length;
+    const done = Object.values(substeps).filter(v=>v).length;
+    const percent = Math.round((done / total) * 100);
 
     const statusClass = step.status==="bestanden"
       ? "ok"
@@ -462,66 +524,74 @@ function processSnapshot(snap){
         ? "inprogress"
         : "fail";
 
-    let subHTML="";
-    let i=1;
+    let subHTML = `<div class="substeps-inline">`;
 
     config.forEach(item=>{
       const val = substeps[item.id];
 
       subHTML += `
-        ${i}.
-        <input type="checkbox"
-          ${val?"checked":""}
-          ${(!unlocked || role==="pruefung")?"disabled":""}
-          onchange="toggleSub('${stepId}')">
-        ${item.label}<br>
+        <div class="substep-item">
+          <input type="checkbox"
+            ${val?"checked":""}
+            ${(!unlocked || role==="pruefung")?"disabled":""}
+            onchange="toggleSub('${stepId}')">
+          <span>${item.label}</span>
+        </div>
       `;
-      i++;
     });
 
-    html += `
-    <div class="step-card">
+    subHTML += `</div>`;
 
-      <div class="step-header">
-        <h3>${stepId}</h3>
-        <span class="status ${statusClass}">${step.status}</span>
+html += `
+<div class="step-card">
+
+  <div class="step-top">
+    <h3>${stepId}</h3>
+
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${percent}%"></div>
       </div>
-
-      <div class="step-meta">
-        ${step.last_update || "-"} / ${step.last_user || "-"}
-      </div>
-
-      ${!unlocked ? "<div class='warning'>Schritt gesperrt</div>" : ""}
-
-      <div class="substeps">
-        ${subHTML}
-      </div>
-
-      ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
-
-      <div class="actions">
-        <input id="user_${stepId}" placeholder="Name"
-          ${(!unlocked || role!=="pruefung")?"disabled":""}>
-
-        <select id="status_${stepId}"
-          ${(!unlocked || role!=="pruefung")?"disabled":""}>
-          <option value="nicht bestanden" ${!allDone ? "selected" : ""}>nicht bestanden</option>
-          <option value="bestanden" ${allDone ? "" : "disabled"}>bestanden</option>
-        </select>
-
-        <button class="${allDone ? "ready" : ""}"
-          onclick="saveStep('${stepId}')"
-          ${(!unlocked || role!=="pruefung")?"disabled":""}>
-          Speichern
-        </button>
-      </div>
-
-      <br>
-      <button onclick="toggleHistory('${stepId}')">📜 Historie</button>
-      <div id="hist_${stepId}" class="history">Lade...</div>
-
+      <div class="progress-text">${percent}%</div>
     </div>
-    `;
+
+    <span class="status ${statusClass}">${step.status}</span>
+  </div>
+
+  <div class="step-meta">
+    ${step.last_update||"-"} / ${step.last_user||"-"}
+  </div>
+
+  ${!unlocked ? "<div class='warning'>Schritt gesperrt</div>" : ""}
+
+  ${subHTML}
+
+  ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
+
+  <div class="actions-row">
+    <input id="user_${stepId}" placeholder="Name"
+      ${(!unlocked || role!=="pruefung")?"disabled":""}>
+
+    <select id="status_${stepId}"
+      ${(!unlocked || role!=="pruefung")?"disabled":""}>
+      <option value="nicht bestanden" ${!allDone ? "selected" : ""}>nicht bestanden</option>
+      <option value="bestanden" ${allDone ? "" : "disabled"}>bestanden</option>
+    </select>
+
+    <button class="${allDone ? "ready" : ""}"
+      onclick="saveStep('${stepId}')"
+      ${(!unlocked || role!=="pruefung")?"disabled":""}>
+      Speichern
+    </button>
+
+    <button onclick="toggleHistory('${stepId}')">📜</button>
+  </div>
+
+  <div id="hist_${stepId}" class="history">Lade...</div>
+
+</div>
+`;
+
   });
 
   contentDiv.innerHTML=html;
