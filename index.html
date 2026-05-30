@@ -398,14 +398,28 @@ function isVisible(key){
   return displayConfig[key]?.show !== false;
 }
 
-function getStatus(step, allDone){
+function getStatus(step, allDone, stepId, allStepsData){
 
+  // 🔹 Endabnahme Sonderlogik
+  if(stepId === "Endabnahme"){
+
+    const readyForApproval = stepOrder
+      .filter(s => s !== "Endabnahme")
+      .every(s => allStepsData[s]?.status === "bestanden");
+
+    if(step.status === "bestanden") return "done";
+
+    if(readyForApproval) return "ready";
+
+    if(Object.values(step.substeps || {}).some(v=>v)) return "progress";
+
+    return "empty";
+  }
+
+  // 🔹 Standard
   if(step.status === "bestanden") return "done";
-
   if(allDone) return "ready";
-
   if(Object.values(step.substeps || {}).some(v=>v)) return "progress";
-
   return "empty";
 }
 
@@ -671,8 +685,12 @@ function processSnapshot(snap){
     const total = Object.keys(substeps).length;
     const done = Object.values(substeps).filter(v=>v).length;
     const percent = Math.round((done / total) * 100);
-    const status = getStatus(step, allDone);
-
+    const status = getStatus(step, allDone, stepId, allStepsData);
+    const isEndabnahme = stepId === "Endabnahme";
+    const isLocked = isEndabnahme && role !== "pruefung";
+    const lockIcon = isEndabnahme
+      ? (isLocked ? "🔒" : "🔓")
+      : "";
     let subHTML = `<div class="substeps-inline">`;
 
     config.forEach(item=>{
@@ -682,7 +700,7 @@ function processSnapshot(snap){
         <div class="substep-item">
           <input type="checkbox"
             ${val?"checked":""}
-            ${(!unlocked || role==="pruefung")?"disabled":""}
+            ${(!unlocked || role==="pruefung" || stepId==="Endabnahme")?"disabled":""}
             onchange="toggleSub('${stepId}')">
           <span>${item.label}</span>
         </div>
@@ -695,7 +713,7 @@ html += `
 <div class="step-card">
 
   <div class="step-top">
-    <h3>${stepId}</h3>
+    <<h3>${lockIcon ? lockIcon + " " : ""}${stepId}</h3>
 
     <div class="progress-container">
       <div class="progress-bar">
