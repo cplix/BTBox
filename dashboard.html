@@ -34,16 +34,45 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 
 .bar-inner {
   height:100%;
-  background:#27ae60;
   color:white;
   text-align:center;
   font-size:12px;
 }
 
-.status { font-weight:bold; margin-top:5px; }
+/* 🔥 STATUS-FARBEN (wie Detailseite) */
+.bar-inner.done { background:#27ae60; }
+.bar-inner.ready { background:#f1c40f; color:black; }
+.bar-inner.progress { background:#3498db; }
+.bar-inner.empty { background:#e74c3c; }
 
-.quality-ok { color:#27ae60; font-weight:bold; }
-.quality-fail { color:#e74c3c; font-weight:bold; }
+/* 🔥 STATUS BADGES (wie Detailseite) */
+.badge {
+  padding:4px 10px;
+  border-radius:12px;
+  font-size:12px;
+  font-weight:bold;
+  display:inline-block;
+}
+
+.badge-red {
+  background:#e74c3c;
+  color:white;
+}
+
+.badge-yellow {
+  background:#f1c40f;
+  color:black;
+}
+
+.badge-green {
+  background:#27ae60;
+  color:white;
+}
+
+.badge-blue {
+  background:#3498db;
+  color:white;
+}
 
 .activity {
   font-size:0.85em;
@@ -145,6 +174,42 @@ function getColor(percent){
   return "#27ae60";
 }
 
+function getStatusFromSteps(stepMap){
+
+  const totalSteps = Object.keys(stepMap).length;
+
+  const doneSteps = Object.values(stepMap)
+    .filter(s => s.status === "bestanden").length;
+
+  const anyProgress = Object.values(stepMap)
+    .some(s => Object.values(s.substeps || {}).some(v=>v));
+
+  if(doneSteps === totalSteps) return "done";
+  if(anyProgress) return "progress";
+
+  return "empty";
+}
+
+function getStatusBadge(status){
+
+  if(status === "done"){
+    return `<span class="badge badge-green">abgeschlossen</span>`;
+  }
+
+  if(status === "progress"){
+    return `<span class="badge badge-blue">in Arbeit</span>`;
+  }
+
+  return `<span class="badge badge-red">nicht begonnen</span>`;
+}
+
+function getQualityBadge(released){
+
+  return released
+    ? `<span class="badge badge-green">freigegeben</span>`
+    : `<span class="badge badge-red">nicht freigegeben</span>`;
+}
+
 // 🔥 Substep Übersicht
 function renderSubstepsOverview(stepsSnap){
 
@@ -184,7 +249,7 @@ function renderSubstepsOverview(stepsSnap){
           </div>
         </div>
 
-        ${percent}%
+        ${percent > 0 ? percent + "%" : ""}
 
       </div>
     `;
@@ -218,13 +283,21 @@ async function renderDashboard(){
       .collection("steps")
       .get();
 
+    // 🔥 ZENTRAL: StepMap einmal aufbauen
+    const stepMap = {};
+    stepsSnap.forEach(doc=>{
+      stepMap[doc.id] = doc.data();
+    });
+
     let completed = 0;
     let latest = null;
 
     stepsSnap.forEach(doc=>{
       const d = doc.data();
 
-      if(d.status === "bestanden") completed++;
+      if(d.status === "bestanden" && doc.id !== "Endabnahme") {
+        completed++;
+      }
 
       if(d.last_update){
 
@@ -238,18 +311,15 @@ async function renderDashboard(){
       }
     });
 
-    const percent = Math.round((completed / stepOrder.length) * 100);
+    const percent = Math.round(
+      (completed / (stepOrder.length - 1)) * 100
+    );
+    const status = getStatusFromSteps(stepMap);
 
-    let statusText = "🔴 nicht begonnen";
-    if(percent === 100) statusText = "🟢 abgeschlossen";
-    else if(percent > 0) statusText = "🟡 in Arbeit";
+    const released =
+      stepMap["Endabnahme"]?.status === "bestanden";
 
-    const quality = pdata.quality_status || "nicht freigegeben";
-
-    let qualityHTML = `<span class="quality-fail">🔴 nicht freigegeben</span>`;
-    if(quality === "freigegeben"){
-      qualityHTML = `<span class="quality-ok">🟢 freigegeben</span>`;
-    }
+    const qualityHTML = getQualityBadge(released);
 
     let activityText = "Keine Aktivität";
     if(latest){
@@ -262,7 +332,9 @@ async function renderDashboard(){
     const substepsHTML = renderSubstepsOverview(stepsSnap);
 
     html += `
-      <div class="card ${groupClass}" onclick="openProduct('${pid}')">
+      <div class="card ${groupClass}" 
+       style="${released ? 'border-left-color:#27ae60' : ''}"
+       onclick="openProduct('${pid}')">
 
         <div style="margin-bottom:5px;">
           <b>${pname} (${pid})</b>
@@ -270,13 +342,15 @@ async function renderDashboard(){
         </div>
 
         <div class="bar">
-          <div class="bar-inner" style="width:${percent}%">
+          <div class="bar-inner ${status}" style="width:${percent}%">
             ${percent}%
           </div>
         </div>
 
-        <div class="status">${statusText}</div>
-        <div>${qualityHTML}</div>
+        <div style="margin-top:5px;">
+          ${getStatusBadge(status)}
+        </div>
+        <div style="margin-top:5px;">${qualityHTML}</div>
 
         ${substepsHTML}
 
