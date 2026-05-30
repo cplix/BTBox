@@ -203,6 +203,34 @@ button.ready { background:#27ae60; color:white; }
 .progress-fill.ready { background:#f1c40f; }
 .progress-fill.progress { background:#3498db; }
 .progress-fill.empty { background:#e74c3c; }
+
+/* 🔥 PRIMARY ACTION BUTTON */
+.btn-primary {
+  background:#2c3e50;          /* dunkles Blau/Grau */
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:6px;
+  font-size:13px;
+  cursor:pointer;
+  transition:all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background:#1a252f;
+  transform:translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background:#bdc3c7;
+  cursor:not-allowed;
+  transform:none;
+}
+
+/* optional: ready-Zustand leicht hervorheben */
+.btn-primary.ready {
+  border:2px solid #27ae60;   /* grüner Rahmen statt Fläche */
+}
 </style>
 </head>
 
@@ -639,11 +667,11 @@ html += `
       <option value="bestanden" ${allDone ? "" : "disabled"}>bestanden</option>
     </select>
 
-    <button class="${allDone ? "ready" : ""}"
-      onclick="saveStep('${stepId}')"
-      ${(!unlocked || role!=="pruefung")?"disabled":""}>
-      Speichern
-    </button>
+  <button class="btn-primary ${allDone ? "ready" : ""}"
+    onclick="saveStep('${stepId}')"
+    ${(!unlocked || role!=="pruefung")?"disabled":""}>
+    💾 Speichern
+  </button>
 
     <button onclick="toggleHistory('${stepId}')">📜</button>
   </div>
