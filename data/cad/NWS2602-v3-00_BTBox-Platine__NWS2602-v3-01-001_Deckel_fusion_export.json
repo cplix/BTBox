@@ -1,0 +1,60 @@
+{
+  "source": "Autodesk Fusion",
+  "exportVersion": "1.1",
+  "exportedAt": "2026-05-31T21:39:41",
+  "productId": "NWS2602-v3-00_BTBox-Platine",
+  "designName": "NWS2602-v3-00_BTbox-Platine v79",
+  "selectedComponent": {
+    "componentId": "NWS2602-v3-01-001_Deckel",
+    "name": "Deckel",
+    "hinweis": "Variante 3",
+    "cadStatus": "in Bearbeitung",
+    "occurrenceName": "Deckel:1"
+  },
+  "components": [
+    {
+      "componentId": "NWS2602-v3-01-001_Deckel",
+      "name": "Deckel",
+      "hinweis": "Variante 3",
+      "materials": [
+        "Aluminium"
+      ],
+      "mass_g": 73.42,
+      "volume_cm3": 27.19,
+      "boundingBox_mm": {
+        "length": 149.0,
+        "width": 70.0,
+        "height": 8.0
+      },
+      "bodyCount": 1,
+      "cadStatus": "in Bearbeitung",
+      "bodies": [
+        {
+          "bodyName": "Deckel",
+          "material": "Aluminium",
+          "mass_g": 73.42,
+          "volume_cm3": 27.19,
+          "boundingBox_mm": {
+            "length": 149.0,
+            "width": 70.0,
+            "height": 8.0
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "componentCount": 1,
+    "bodyCount": 1,
+    "totalMass_g": 73.42,
+    "totalVolume_cm3": 27.19,
+    "materials": [
+      "Aluminium"
+    ],
+    "allMaterialsAssigned": true,
+    "productIdAssigned": true,
+    "componentIdAssigned": true,
+    "cadStatus": "in Bearbeitung",
+    "cadReleased": false
+  }
+}
