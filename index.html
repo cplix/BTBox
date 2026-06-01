@@ -810,12 +810,22 @@ async function loadAllSources(){
 
   try {
     const indexRes = await fetch(`${base}/cad/cad_index.json`);
+
+    if (!indexRes.ok) {
+      throw new Error(`cad_index.json not found: ${indexRes.status}`);
+    }
+
     const index = await indexRes.json();
 
     cadComponents = await Promise.all(
       index.components.map(c =>
         fetch(`${base}/cad/${c.file}`)
-          .then(r => r.json())
+          .then(r => {
+            if (!r.ok) {
+              throw new Error(`CAD file missing: ${c.file}`);
+            }
+            return r.json();
+          })
           .then(data => ({
             ...data,
             _meta: c
@@ -824,7 +834,7 @@ async function loadAllSources(){
     );
 
   } catch (e) {
-    console.warn("CAD load failed", e);
+    console.error("CAD load failed:", e);
   }
 
   try {
