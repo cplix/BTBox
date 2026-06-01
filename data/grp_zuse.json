@@ -1,8 +1,6 @@
 {
-  "product_id": "id003",
-  "product_name": "Bluetooth-Box",
   "group_name": "Zuse",
-  "version": "v3",
+  "product_name": "Bluetooth-Box",
   "manufacturing": {
     "3d_print": {
       "component": "Gehaeuse",

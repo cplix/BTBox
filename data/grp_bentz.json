@@ -1,15 +1,13 @@
 {
-  "product_id": "id001",
+  "group_name": "Bentz",
   "product_name": "Bluetooth-Box",
-  "group_name": "Siemens",
-  "version": "v3",
   "manufacturing": {
     "3d_print": {
       "component": "Gehaeuse",
       "material": "PLA",
       "layer_height": "0.2 mm",
-      "perimeter": "3",
-      "infill": "Gyriod"
+      "perimeter": "2",
+      "infill": "Bienenwabe"
     },
     "cnc": {
       "component": "Deckel",
@@ -17,6 +15,6 @@
     }
   },
   "link": {
-    "cad": "https://a360.co/43J0elf"
+    "cad": "https://fusion-link-zum-modell"
   }
 }
