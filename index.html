@@ -555,8 +555,8 @@ async function loadProductData(){
   let html = `<h3>📦 Produktdaten</h3>`;
   html += `<div class="data-grid">`;
 
-  html += renderProductCard(cad);
-  html += renderCadCard(cad);
+  html += renderProductCard(cadComponents);
+  html += renderCadCards(cadComponents);
   html += renderCncCard(group, cnc);
   html += renderPrintCard(group, print);
 
