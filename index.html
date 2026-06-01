@@ -307,10 +307,23 @@ const firebaseConfig = {
   projectId: "i40-btbox"
 };
 
+//Dateiname zentral hier anpassen
+const FILES = {
+  cad: "fusion-export.json",
+  cnc: "cnc_statemonitor.json",
+  print: "3dp_prusalink.json"
+};
+
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const id = new URLSearchParams(window.location.search).get("id") || "id001";
+const id = new URLSearchParams(window.location.search).get("id");
+
+if (!id) {
+  document.body.innerHTML = "❌ Keine Gruppen-ID angegeben";
+  throw new Error("Missing id");
+}
 
 let role = null;
 const contentDiv = document.getElementById("content");
@@ -778,17 +791,17 @@ async function loadAllSources(){
   } catch {}
 
   try {
-    const res = await fetch(`${base}/cad/fusion-export.json`);
+    const res = await fetch(`${base}/cad/${FILES.cad}`);
     cad = await res.json();
   } catch {}
 
   try {
-    const res = await fetch(`${base}/cnc/cnc_statemonitor.json`);
+    const res = await fetch(`${base}/cnc/${FILES.cnc}`);
     cnc = await res.json();
   } catch {}
 
   try {
-    const res = await fetch(`${base}/3dprint/3dp_prusalink.json`);
+    const res = await fetch(`${base}/3dprint/${FILES.print}`);
     print = await res.json();
   } catch {}
 
