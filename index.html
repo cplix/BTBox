@@ -553,21 +553,26 @@ function renderObject(obj, level = 0){
 
 
 async function loadProductData(){
+  try {
+    const { group, cadComponents, cnc, print } = await loadAllSources();
 
-  const { group, cadComponents, cnc, print } = await loadAllSources();
+    let html = `<h3>📦 Produktdaten</h3>`;
+    html += `<div class="data-grid">`;
 
-  let html = `<h3>📦 Produktdaten</h3>`;
-  html += `<div class="data-grid">`;
+    html += renderProductCard(cadComponents, group);
+    html += renderCadCards(cadComponents);
+    html += renderCncCard(group, cnc);
+    html += renderPrintCard(group, print);
 
-  html += renderProductCard(cadComponents);
-  html += renderCadCards(cadComponents);
-  html += renderCncCard(group, cnc);
-  html += renderPrintCard(group, print);
+    html += `</div>`;
 
-  html += `</div>`;
-
-  document.getElementById("productData").innerHTML = html;
-  document.getElementById("productData").style.display = "block";
+    document.getElementById("productData").innerHTML = html;
+    document.getElementById("productData").style.display = "block";
+  } catch(e) {
+    console.error("loadProductData ERROR:", e);
+    document.getElementById("productData").innerHTML = "❌ Fehler beim Laden der Produktdaten";
+    document.getElementById("productData").style.display = "block";
+  }
 }
 
 
@@ -832,13 +837,21 @@ async function loadAllSources(){
     print = await res.json();
   } catch {}
 
+  console.log("LOADED:", { group, cadComponents, cnc, print });
   return { group, cadComponents, cnc, print };
 }
 
 
-function renderProductCard(cadComponents){
+function renderProductCard(cadComponents, group){
 
-  if(!cadComponents || cadComponents.length === 0) return "";
+  if(!cadComponents || cadComponents.length === 0){
+    return `
+      <div class="data-card">
+        <div class="data-title">📦 Produkt</div>
+        Keine CAD-Daten gefunden
+      </div>
+    `;
+  }
 
   const cad = cadComponents[0];
 
@@ -847,7 +860,12 @@ function renderProductCard(cadComponents){
       <div class="data-title">📦 Produkt</div>
 
       <b>${cad.productId}</b><br>
-      Variante: ${cad.selectedComponent?.hinweis || "-"}
+      Variante: ${cad.selectedComponent?.hinweis || "-"}<br>
+
+      <br>
+      <a class="data-btn" href="${group?.link?.cad || "#"}" target="_blank">
+        CAD öffnen
+      </a>
 
     </div>
   `;
@@ -863,9 +881,11 @@ function renderCadCards(cadComponents){
     const comp = cad.components?.[0];
     if(!comp) return "";
 
+    const compName = comp.name || cad._meta?.name || "Unbekannt";
+
     return `
       <div class="data-card">
-        <div class="data-title">🧩 CAD – ${comp.name}</div>
+        <div class="data-title">🧩 CAD – ${compName}</div>
 
         Material: ${(comp.materials || []).join(", ")}<br>
         Masse: ${comp.mass_g} g<br>
@@ -889,12 +909,16 @@ function renderCncCard(group, cnc){
       <div class="data-title">⚙️ CNC</div>
 
       <b>Vorgaben:</b><br>
+      Bauteil: ${group?.manufacturing?.cnc?.component || "-"}<br>
       Maschine: ${group?.manufacturing?.cnc?.machine || "-"}<br>
+      Material: ${group?.manufacturing?.cnc?.material || "-"}<br>
       Werkzeug: ${group?.manufacturing?.cnc?.tool || "-"}<br>
 
       <br>
 
       <b>Live:</b><br>
+      Quelle: ${cnc?.source || "-"}<br>
+      Steuerung: ${cnc?.control || "-"}<br>
       Drehzahl: ${cnc?.cnc?.speed || "-"}<br>
       Vorschub: ${cnc?.cnc?.feed || "-"}<br>
       Tool: ${cnc?.cnc?.tool || "-"}
@@ -911,13 +935,19 @@ function renderPrintCard(group, print){
       <div class="data-title">🖨️ 3D-Druck</div>
 
       <b>Vorgaben:</b><br>
-      Layer: ${group?.manufacturing?.["3d_print"]?.layer_height || "-"}<br>
+      Bauteil: ${group?.manufacturing?.["3d_print"]?.component || "-"}<br>
+      Maschine: ${group?.manufacturing?.["3d_print"]?.machine || "-"}<br>
+      Material: ${group?.manufacturing?.["3d_print"]?.material || "-"}<br>
+      Schichthoehe: ${group?.manufacturing?.["3d_print"]?.layer_height || "-"}<br>
+      Perimeter: ${group?.manufacturing?.["3d_print"]?.perimeter || "-"}<br>
       Infill: ${group?.manufacturing?.["3d_print"]?.infill || "-"}<br>
 
       <br>
 
-      <b>Status:</b><br>
-      ${print?.state || "keine Daten"}
+      <b>Live:</b><br>
+      Material: ${print?.print?.filament || "-"}<br>
+      Schichthoehe: ${print?.print?.layer_hight || "-"}<br>
+      Infill: ${print?.print?.infill || "-"}
 
     </div>
   `;
