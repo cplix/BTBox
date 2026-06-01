@@ -456,89 +456,6 @@ function showToast(message, type="success"){
   }, 2500);
 }
 
-function renderProductDataModern(data){
-
-  let html = `<div class="data-grid">`;
-
-  // 🔹 GENERISCH: Top-Level Felder
-  html += `<div class="data-card">
-    <div class="data-title">📦 Produkt</div>`;
-
-  (displayOrder.length ? displayOrder : Object.keys(displayConfig)).forEach(key => {
-
-    const cfg = displayConfig[key];
-    if(!cfg || cfg.show === false) return;
-
-    // nur primitive Werte hier
-    if(typeof data[key] === "object") return;
-
-    const value = data[key] ?? (key === "product_id" ? id : null);
-    if(value === null || value === undefined) return;
-
-    if(cfg.highlight){
-      html += `<div><b>${cfg.label}: ${value}</b></div>`;
-    } else {
-      html += `<div>${cfg.label}: ${value}</div>`;
-    }
-  });
-
-  html += `</div>`;
-
-  // 🔹 GENERISCH: Objekte (z.B. manufacturing, link)
-  (displayOrder.length ? displayOrder : Object.keys(data)).forEach(sectionKey => {
-
-    const section = data[sectionKey];
-    if(typeof section !== "object" || section === null) return;
-    if(!isVisible(sectionKey)) return;
-
-    html += `
-      <div class="data-card">
-        <div class="data-title">${getLabel(sectionKey)}</div>
-        <div class="sub-grid">
-    `;
-
-    Object.keys(section).forEach(subKey => {
-
-      if(!isVisible(subKey)) return;
-
-      const sub = section[subKey];
-
-      // 🔹 FALL: Objekt (z.B. 3d_print)
-      if(typeof sub === "object"){
-
-        html += `<div class="sub-card"><b>${getLabel(subKey)}</b><br>`;
-
-        Object.keys(sub).forEach(k => {
-          if(!isVisible(k)) return;
-
-          const v = sub[k];
-          if(typeof v === "string" && v.startsWith("http")){
-            html += `<a class="data-btn" href="${v}" target="_blank">${getLabel(k)}</a><br>`;
-          } else {
-            html += `${getLabel(k)}: ${v}<br>`;
-          }
-        });
-
-        html += `</div>`;
-      }
-
-      // 🔹 FALL: Link direkt
-      else if(typeof sub === "string" && sub.startsWith("http")){
-        html += `
-          <div class="sub-card">
-            <a class="data-btn" href="${sub}" target="_blank">${getLabel(subKey)}</a>
-          </div>
-        `;
-      }
-
-    });
-
-    html += `</div></div>`;
-  });
-
-  html += `</div>`;
-  return html;
-}
 
 function selectRole(r){
   role=r;
@@ -610,21 +527,32 @@ function renderObject(obj, level = 0){
   return html;
 }
 
+
 async function loadProductData(){
-  try {
-    const res = await fetch(`data/${id}.json`);
-    const d = await res.json();
-    document.getElementById("productData").innerHTML =
-      `<h3>📦 Produktdaten</h3>` + renderProductDataModern(d);
-    document.getElementById("productData").style.display = "block";
-  } catch {}
+
+  const { group, cad, cnc, print } = await loadAllSources();
+
+  let html = `<h3>📦 Produktdaten</h3>`;
+  html += `<div class="data-grid">`;
+
+  html += renderProductCard(cad);
+  html += renderCadCard(cad);
+  html += renderCncCard(group, cnc);
+  html += renderPrintCard(group, print);
+
+  html += `</div>`;
+
+  document.getElementById("productData").innerHTML = html;
+  document.getElementById("productData").style.display = "block";
 }
+
 
 function isStepUnlocked(stepId,data){
   const i = stepOrder.indexOf(stepId);
   if(i===0) return true;
   return data[stepOrder[i-1]]?.status==="bestanden";
 }
+
 
 async function initSteps(){
   const productRef = db.collection("products").doc(id);
@@ -833,6 +761,125 @@ async function saveStep(stepId){
 
   showToast("✔ Gespeichert");
 }
+
+
+async function loadAllSources(){
+
+  // 🔹 Gruppen-Daten
+  let group = null;
+  try {
+    const res = await fetch(`data/grp_${id}.json`);
+    group = await res.json();
+  } catch {}
+
+  // 🔹 CAD (erstmal: eine Datei)
+  let cad = null;
+  try {
+    const res = await fetch(`data/cad/${id}.json`);
+    cad = await res.json();
+  } catch {}
+
+  // 🔹 CNC
+  let cnc = null;
+  try {
+    const res = await fetch(`data/cnc/cnc_statemonitor.json`);
+    cnc = await res.json();
+  } catch {}
+
+  // 🔹 3D Print
+  let print = null;
+  try {
+    const res = await fetch(`data/3dprint/3dp_prusalink.json`);
+    print = await res.json();
+  } catch {}
+
+  return { group, cad, cnc, print };
+}
+
+
+function renderProductCard(cad){
+
+  if(!cad) return "";
+
+  return `
+    <div class="data-card">
+      <div class="data-title">📦 Produkt</div>
+
+      <b>${cad.productId}</b><br>
+      Variante: ${cad.designName}<br>
+      Komponente: ${cad.selectedComponent?.name || "-"}
+
+    </div>
+  `;
+}
+
+
+function renderCadCard(cad){
+
+  if(!cad) return "";
+
+  const comp = cad.components?.[0];
+  if(!comp) return "";
+
+  return `
+    <div class="data-card">
+      <div class="data-title">🧩 CAD</div>
+
+      Material: ${(comp.materials || []).join(", ")}<br>
+      Masse: ${comp.mass_g} g<br>
+      Volumen: ${comp.volume_cm3} cm³<br>
+
+      Maße:<br>
+      ${comp.boundingBox_mm?.length} ×
+      ${comp.boundingBox_mm?.width} ×
+      ${comp.boundingBox_mm?.height} mm
+
+    </div>
+  `;
+}
+
+
+function renderCncCard(group, cnc){
+
+  return `
+    <div class="data-card">
+      <div class="data-title">⚙️ CNC</div>
+
+      <b>Vorgaben:</b><br>
+      Maschine: ${group?.cnc?.machine || "-"}<br>
+      Werkzeug: ${group?.cnc?.tool || "-"}<br>
+
+      <br>
+
+      <b>Live:</b><br>
+      Drehzahl: ${cnc?.cnc?.speed || "-"}<br>
+      Vorschub: ${cnc?.cnc?.feed || "-"}<br>
+      Tool: ${cnc?.cnc?.tool || "-"}
+
+    </div>
+  `;
+}
+
+
+function renderPrintCard(group, print){
+
+  return `
+    <div class="data-card">
+      <div class="data-title">🖨️ 3D-Druck</div>
+
+      <b>Vorgaben:</b><br>
+      Layer: ${group?.["3d_print"]?.layer_height || "-"}<br>
+      Infill: ${group?.["3d_print"]?.infill || "-"}<br>
+
+      <br>
+
+      <b>Status:</b><br>
+      ${print?.state || "keine Daten"}
+
+    </div>
+  `;
+}
+
 
 async function toggleHistory(stepId){
 

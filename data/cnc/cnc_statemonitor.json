@@ -1,0 +1,10 @@
+{
+  "source": "StateMonitor",
+  "machine": "DMG MORI CMX 50U",
+  "control": "Heidenhain TNC620",
+  "cnc": {
+      "speed": "1500",
+      "feed": "80",
+      "tool": "7"
+    }
+}
