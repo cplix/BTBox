@@ -1,4 +1,9 @@
 {
   "source": "PrusaLink",
-  "control": "FW 3.14.1"
+  "control": "FW 3.14.1",
+  "print": {
+      "filament": "PLA",
+      "layer_hight": "0.2 mm",
+      "infill": "Honeycomb"
+    }
 }
