@@ -1,17 +1,20 @@
 {
-  "group_name": "Zuse",
+  "group_name": "Bentz",
   "product_name": "Bluetooth-Box",
   "manufacturing": {
     "3d_print": {
       "component": "Gehaeuse",
+      "machine": "Prusa MK3s",
       "material": "PLA",
       "layer_height": "0.2 mm",
-      "perimeter": "3",
-      "infill": "Gitternetz"
+      "perimeter": "2",
+      "infill": "Bienenwabe"
     },
     "cnc": {
       "component": "Deckel",
-      "material": "Aluminium"
+      "machine": "DMG MORI CMX 50U",
+      "material": "Aluminium",
+      "tool": "Schaftftäser"
     }
   },
   "link": {

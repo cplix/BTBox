@@ -1,20 +1,23 @@
 {
-  "group_name": "Bentz",
+  "group_name": "Siemens",
   "product_name": "Bluetooth-Box",
   "manufacturing": {
     "3d_print": {
       "component": "Gehaeuse",
+      "machine": "Prusa MK3s",
       "material": "PLA",
       "layer_height": "0.2 mm",
-      "perimeter": "2",
-      "infill": "Bienenwabe"
+      "perimeter": "3",
+      "infill": "Gyriod"
     },
     "cnc": {
       "component": "Deckel",
-      "material": "Aluminium"
+      "machine": "DMG MORI CMX 50U",
+      "material": "Aluminium",
+      "tool": "Schaftftäser"
     }
   },
   "link": {
-    "cad": "https://fusion-link-zum-modell"
+    "cad": "https://a360.co/43J0elf"
   }
 }

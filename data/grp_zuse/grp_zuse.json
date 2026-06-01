@@ -1,20 +1,23 @@
 {
-  "group_name": "Siemens",
+  "group_name": "Zuse",
   "product_name": "Bluetooth-Box",
   "manufacturing": {
     "3d_print": {
       "component": "Gehaeuse",
+      "machine": "Prusa MK3s",
       "material": "PLA",
       "layer_height": "0.2 mm",
       "perimeter": "3",
-      "infill": "Gyriod"
+      "infill": "Gitternetz"
     },
     "cnc": {
       "component": "Deckel",
-      "material": "Aluminium"
+      "machine": "DMG MORI CMX 50U",
+      "material": "Aluminium",
+      "tool": "Schaftftäser"
     }
   },
   "link": {
-    "cad": "https://a360.co/43J0elf"
+    "cad": "https://fusion-link-zum-modell"
   }
 }
