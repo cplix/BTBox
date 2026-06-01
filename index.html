@@ -817,20 +817,26 @@ async function loadAllSources(){
     const index = await indexRes.json();
 
     const results = await Promise.allSettled(
-      index.components.map(c =>
-        fetch(`${base}/cad/${c.file}`)
+      index.components.map(c => {
+        const fileName = c.file.trim();
+        const url = `${base}/cad/${fileName}`;
+        console.log("Loading CAD file:", url);
+
+        return fetch(url)
           .then(r => {
             if (!r.ok) {
-              throw new Error(`CAD file missing: ${c.file}`);
+              console.error("❌ CAD fetch failed:", url, r.status);
+              throw new Error(`CAD file missing: ${fileName}`);
             }
+            console.log("✅ CAD loaded:", fileName);
             return r.json();
           })
           .then(data => ({
             ...data,
             _meta: c
-          }))
-      )
-);
+          }));
+      })
+    );
 
 cadComponents = results
   .filter(r => r.status === "fulfilled")
@@ -850,7 +856,13 @@ cadComponents = results
     print = await res.json();
   } catch {}
 
-  console.log("LOADED:", { group, cadComponents, cnc, print });
+  console.log("LOADED:", {
+    group,
+    cadComponentsCount: cadComponents.length,
+    cadComponents,
+    cnc,
+    print
+  });
   return { group, cadComponents, cnc, print };
 }
 
