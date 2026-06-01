@@ -816,7 +816,7 @@ async function loadAllSources(){
 
     const index = await indexRes.json();
 
-    cadComponents = await Promise.all(
+    const results = await Promise.allSettled(
       index.components.map(c =>
         fetch(`${base}/cad/${c.file}`)
           .then(r => {
@@ -830,7 +830,11 @@ async function loadAllSources(){
             _meta: c
           }))
       )
-    );
+);
+
+cadComponents = results
+  .filter(r => r.status === "fulfilled")
+  .map(r => r.value);
 
   } catch (e) {
     console.error("CAD load failed:", e);
