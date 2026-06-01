@@ -470,13 +470,13 @@ async function loadProductName(){
   let groupName = null;
 
   try {
-    const res = await fetch(`data/${id}.json`);
+    const res = await fetch(`data/${id}/${id}.json`);
     const json = await res.json();
     if (json.product_name) productName = json.product_name;
     if (json.group_name) groupName = json.group_name;
   } catch {}
 
-  let html = `Produkt: <b>${productName}</b> (${id})`;
+  let html = `Produkt: <b>${productName}</b>`;
   if (groupName) html += `<br><small>Gruppe: ${groupName}</small>`;
   document.getElementById("productTitle").innerHTML = html;
 }
@@ -765,31 +765,30 @@ async function saveStep(stepId){
 
 async function loadAllSources(){
 
-  // 🔹 Gruppen-Daten
+  const base = `data/${id}`;
+
   let group = null;
+  let cad = null;
+  let cnc = null;
+  let print = null;
+
   try {
-    const res = await fetch(`data/grp_${id}.json`);
+    const res = await fetch(`${base}/${id}.json`);
     group = await res.json();
   } catch {}
 
-  // 🔹 CAD (erstmal: eine Datei)
-  let cad = null;
   try {
-    const res = await fetch(`data/cad/${id}.json`);
+    const res = await fetch(`${base}/cad/fusion-export.json`);
     cad = await res.json();
   } catch {}
 
-  // 🔹 CNC
-  let cnc = null;
   try {
-    const res = await fetch(`data/cnc/cnc_statemonitor.json`);
+    const res = await fetch(`${base}/cnc/cnc_statemonitor.json`);
     cnc = await res.json();
   } catch {}
 
-  // 🔹 3D Print
-  let print = null;
   try {
-    const res = await fetch(`data/3dprint/3dp_prusalink.json`);
+    const res = await fetch(`${base}/3dprint/3dp_prusalink.json`);
     print = await res.json();
   } catch {}
 
@@ -806,7 +805,7 @@ function renderProductCard(cad){
       <div class="data-title">📦 Produkt</div>
 
       <b>${cad.productId}</b><br>
-      Variante: ${cad.designName}<br>
+      Variante: ${cad.selectedComponent?.hinweis || "-"}<br>
       Komponente: ${cad.selectedComponent?.name || "-"}
 
     </div>
@@ -829,7 +828,7 @@ function renderCadCard(cad){
       Masse: ${comp.mass_g} g<br>
       Volumen: ${comp.volume_cm3} cm³<br>
 
-      Maße:<br>
+      Hüllmaße:<br>
       ${comp.boundingBox_mm?.length} ×
       ${comp.boundingBox_mm?.width} ×
       ${comp.boundingBox_mm?.height} mm
@@ -846,8 +845,8 @@ function renderCncCard(group, cnc){
       <div class="data-title">⚙️ CNC</div>
 
       <b>Vorgaben:</b><br>
-      Maschine: ${group?.cnc?.machine || "-"}<br>
-      Werkzeug: ${group?.cnc?.tool || "-"}<br>
+      Maschine: ${group?.manufacturing?.cnc?.machine || "-"}<br>
+      Werkzeug: ${group?.manufacturing?.cnc?.tool || "-"}<br>
 
       <br>
 
@@ -868,8 +867,8 @@ function renderPrintCard(group, print){
       <div class="data-title">🖨️ 3D-Druck</div>
 
       <b>Vorgaben:</b><br>
-      Layer: ${group?.["3d_print"]?.layer_height || "-"}<br>
-      Infill: ${group?.["3d_print"]?.infill || "-"}<br>
+      Layer: ${group?.manufacturing?.["3d_print"]?.layer_height || "-"}<br>
+      Infill: ${group?.manufacturing?.["3d_print"]?.infill || "-"}<br>
 
       <br>
 
