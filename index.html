@@ -384,7 +384,7 @@ const displayConfig = {
   product_id: { show:true, label:"Produkt-ID", highlight:true },
   product_name: { show:false, label:"Produktname" },
   group_name: { show:false, label:"Gruppe" },
-  version: { show:true, label:"Variante" },
+  version: { show:true, label:"" },
 
   // 🔹 Fertigung
   manufacturing: { show:true, label:"Fertigung" },
@@ -885,7 +885,7 @@ function renderProductCard(cadComponents, group){
       <div class="data-title">📦 Produkt</div>
 
       <b>${cad.productId}</b><br>
-      Variante: ${cad.selectedComponent?.hinweis || "-"}<br>
+      ${cad.selectedComponent?.hinweis || "-"}<br>
 
       <br>
       <a class="data-btn" href="${group?.link?.cad || "#"}" target="_blank">
