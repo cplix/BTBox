@@ -46,9 +46,8 @@ button:not(.btn-primary):hover {
 /* 🔥 NEW: DATA UI */
 .data-grid {
   display: grid;
-  grid-template-columns: 50% 50%;
+  grid-template-columns: 1fr;
   gap: 15px;
-  align-items: start;
 }
 
 .data-card {
@@ -913,52 +912,60 @@ function renderCadCards(cadComponents){
 
 
 function renderCncCard(group, cnc){
-
   return `
     <div class="data-card">
       <div class="data-title">⚙️ CNC</div>
 
-      <b>Vorgaben:</b><br>
-      Bauteil: ${group?.manufacturing?.cnc?.component || "-"}<br>
-      Maschine: ${group?.manufacturing?.cnc?.machine || "-"}<br>
-      Material: ${group?.manufacturing?.cnc?.material || "-"}<br>
-      Werkzeug: ${group?.manufacturing?.cnc?.tool || "-"}<br>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
 
-      <br>
+        <div>
+          <b>Vorgaben:</b><br>
+          Bauteil: ${group?.manufacturing?.cnc?.component || "-"}<br>
+          Maschine: ${group?.manufacturing?.cnc?.machine || "-"}<br>
+          Material: ${group?.manufacturing?.cnc?.material || "-"}<br>
+          Werkzeug: ${group?.manufacturing?.cnc?.tool || "-"}<br>
+        </div>
 
-      <b>Live:</b><br>
-      Quelle: ${cnc?.source || "-"}<br>
-      Steuerung: ${cnc?.control || "-"}<br>
-      Drehzahl: ${cnc?.cnc?.speed || "-"}<br>
-      Vorschub: ${cnc?.cnc?.feed || "-"}<br>
-      Tool: ${cnc?.cnc?.tool || "-"}
+        <div>
+          <b>Live:</b><br>
+          Quelle: ${cnc?.source || "-"}<br>
+          Steuerung: ${cnc?.control || "-"}<br>
+          Drehzahl: ${cnc?.cnc?.speed || "-"}<br>
+          Vorschub: ${cnc?.cnc?.feed || "-"}<br>
+          Tool: ${cnc?.cnc?.tool || "-"}
+        </div>
 
+      </div>
     </div>
   `;
 }
 
 
 function renderPrintCard(group, print){
-
   return `
     <div class="data-card">
       <div class="data-title">🖨️ 3D-Druck</div>
 
-      <b>Vorgaben:</b><br>
-      Bauteil: ${group?.manufacturing?.["3d_print"]?.component || "-"}<br>
-      Maschine: ${group?.manufacturing?.["3d_print"]?.machine || "-"}<br>
-      Material: ${group?.manufacturing?.["3d_print"]?.material || "-"}<br>
-      Schichthoehe: ${group?.manufacturing?.["3d_print"]?.layer_height || "-"}<br>
-      Perimeter: ${group?.manufacturing?.["3d_print"]?.perimeter || "-"}<br>
-      Infill: ${group?.manufacturing?.["3d_print"]?.infill || "-"}<br>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
 
-      <br>
+        <div>
+          <b>Vorgaben:</b><br>
+          Bauteil: ${group?.manufacturing?.["3d_print"]?.component || "-"}<br>
+          Maschine: ${group?.manufacturing?.["3d_print"]?.machine || "-"}<br>
+          Material: ${group?.manufacturing?.["3d_print"]?.material || "-"}<br>
+          Schichthoehe: ${group?.manufacturing?.["3d_print"]?.layer_height || "-"}<br>
+          Perimeter: ${group?.manufacturing?.["3d_print"]?.perimeter || "-"}<br>
+          Infill: ${group?.manufacturing?.["3d_print"]?.infill || "-"}<br>
+        </div>
 
-      <b>Live:</b><br>
-      Material: ${print?.print?.filament || "-"}<br>
-      Schichthoehe: ${print?.print?.layer_hight || "-"}<br>
-      Infill: ${print?.print?.infill || "-"}
+        <div>
+          <b>Live:</b><br>
+          Material: ${print?.print?.filament || "-"}<br>
+          Schichthoehe: ${print?.print?.layer_hight || "-"}<br>
+          Infill: ${print?.print?.infill || "-"}
+        </div>
 
+      </div>
     </div>
   `;
 }
