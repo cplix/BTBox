@@ -309,7 +309,6 @@ const firebaseConfig = {
 
 //Dateiname zentral hier anpassen
 const FILES = {
-  cad: "fusion-export.json",
   cnc: "cnc_statemonitor.json",
   print: "3dp_prusalink.json"
 };
@@ -543,7 +542,7 @@ function renderObject(obj, level = 0){
 
 async function loadProductData(){
 
-  const { group, cad, cnc, print } = await loadAllSources();
+  const { group, cadComponents, cnc, print } = await loadAllSources();
 
   let html = `<h3>📦 Produktdaten</h3>`;
   html += `<div class="data-grid">`;
@@ -790,10 +789,26 @@ async function loadAllSources(){
     group = await res.json();
   } catch {}
 
+  let cadComponents = [];
+
   try {
-    const res = await fetch(`${base}/cad/${FILES.cad}`);
-    cad = await res.json();
-  } catch {}
+    const indexRes = await fetch(`${base}/cad/cad_index.json`);
+    const index = await indexRes.json();
+
+    cadComponents = await Promise.all(
+      index.components.map(c =>
+        fetch(`${base}/cad/${c.file}`)
+          .then(r => r.json())
+          .then(data => ({
+            ...data,
+            _meta: c
+          }))
+      )
+    );
+
+  } catch (e) {
+    console.warn("CAD load failed", e);
+  }
 
   try {
     const res = await fetch(`${base}/cnc/${FILES.cnc}`);
@@ -809,45 +824,49 @@ async function loadAllSources(){
 }
 
 
-function renderProductCard(cad){
+function renderProductCard(cadComponents){
 
-  if(!cad) return "";
+  if(!cadComponents || cadComponents.length === 0) return "";
+
+  const cad = cadComponents[0];
 
   return `
     <div class="data-card">
       <div class="data-title">📦 Produkt</div>
 
       <b>${cad.productId}</b><br>
-      Variante: ${cad.selectedComponent?.hinweis || "-"}<br>
-      Komponente: ${cad.selectedComponent?.name || "-"}
+      Variante: ${cad.selectedComponent?.hinweis || "-"}
 
     </div>
   `;
 }
 
 
-function renderCadCard(cad){
+function renderCadCards(cadComponents){
 
-  if(!cad) return "";
+  if(!cadComponents || cadComponents.length === 0) return "";
 
-  const comp = cad.components?.[0];
-  if(!comp) return "";
+  return cadComponents.map(cad => {
 
-  return `
-    <div class="data-card">
-      <div class="data-title">🧩 CAD</div>
+    const comp = cad.components?.[0];
+    if(!comp) return "";
 
-      Material: ${(comp.materials || []).join(", ")}<br>
-      Masse: ${comp.mass_g} g<br>
-      Volumen: ${comp.volume_cm3} cm³<br>
+    return `
+      <div class="data-card">
+        <div class="data-title">🧩 CAD – ${comp.name}</div>
 
-      Hüllmaße:<br>
-      ${comp.boundingBox_mm?.length} ×
-      ${comp.boundingBox_mm?.width} ×
-      ${comp.boundingBox_mm?.height} mm
+        Material: ${(comp.materials || []).join(", ")}<br>
+        Masse: ${comp.mass_g} g<br>
+        Volumen: ${comp.volume_cm3} cm³<br>
 
-    </div>
-  `;
+        Hüllmaße:<br>
+        ${comp.boundingBox_mm?.length} ×
+        ${comp.boundingBox_mm?.width} ×
+        ${comp.boundingBox_mm?.height} mm
+
+      </div>
+    `;
+  }).join("");
 }
 
 

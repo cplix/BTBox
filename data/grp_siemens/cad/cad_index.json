@@ -1,0 +1,20 @@
+{
+  "components": [
+    {
+      "name": "Deckel",
+      "file": "fusion-export_Deckel.json"
+    },
+    {
+      "name": "Kasten",
+      "file": "fusion-export_Kasten.json"
+    },
+    {
+      "name": "Komponentenplatine",
+      "file": "fusion-export_Komponentenplatine.json"
+    },
+    {
+      "name": "Kabelklammer",
+      "file": "fusion-export_Kabelklammer.json"
+    }
+  ]
+}
