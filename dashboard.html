@@ -188,11 +188,13 @@ function computeActivity(stepsSnap){
     const d = doc.data();
 
     if(d.last_update){
-      if(!latest || d.last_update > latest.timestamp){
+      const t = new Date(d.last_update);
+
+      if(!latest || t > latest.timestamp){
         latest = {
           user: d.last_user,
           action: "Status geändert",
-          timestamp: d.last_update
+          timestamp: t
         };
       }
     }
@@ -200,7 +202,7 @@ function computeActivity(stepsSnap){
 
   if(!latest) return "Keine Aktivität";
 
-  return `${latest.user} – ${latest.action} – ${latest.timestamp}`;
+  return `${latest.user} – ${latest.action} – ${latest.timestamp.toLocaleString()}`;
 }
 
 
