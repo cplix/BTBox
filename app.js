@@ -446,6 +446,7 @@ async function loadProductData(){
   // 🔹 Main UI composition for product data section
   try {
     const { group, cadComponents, cnc, print } = await loadAllSources();
+    let html = "";
 
     html += `<h3>📦 Produktdaten</h3>`;
     html += `<div class="data-grid">`;

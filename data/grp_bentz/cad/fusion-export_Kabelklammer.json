@@ -1,0 +1,66 @@
+{
+  "source": "Autodesk Fusion",
+  "exportVersion": "1.1",
+  "exportedAt": "2026-06-03T20:00:17",
+  "productId": "NWS2602-v3-00_BTBox-Platine",
+  "designName": "NWS2602-v3-00_BTbox-Platine v79",
+  "selectedComponent": {
+    "componentId": "NWS2602-v3-01-004_Kabelklammer",
+    "name": "Kabelklammer",
+    "hinweis": "",
+    "cadStatus": "in Bearbeitung",
+    "occurrenceName": "Kabelklammer:1",
+    "screenshot": "fusion-export_Kabelklammer.png"
+  },
+  "components": [
+    {
+      "componentId": "NWS2602-v3-01-004_Kabelklammer",
+      "name": "Kabelklammer",
+      "hinweis": "",
+      "materials": [
+        "Kunststoff"
+      ],
+      "mass_g": 0.44,
+      "volume_cm3": 0.34,
+      "boundingBox_mm": {
+        "length": 4.8,
+        "width": 60.8,
+        "height": 5.0
+      },
+      "bodyCount": 1,
+      "cadStatus": "in Bearbeitung",
+      "screenshot": "fusion-export_Kabelklammer.png",
+      "bodies": [
+        {
+          "bodyName": "Körper1",
+          "material": "Kunststoff",
+          "mass_g": 0.44,
+          "volume_cm3": 0.34,
+          "boundingBox_mm": {
+            "length": 4.8,
+            "width": 60.8,
+            "height": 5.0
+          }
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "componentCount": 1,
+    "bodyCount": 1,
+    "totalMass_g": 0.44,
+    "totalVolume_cm3": 0.34,
+    "materials": [
+      "Kunststoff"
+    ],
+    "allMaterialsAssigned": true,
+    "productIdAssigned": true,
+    "componentIdAssigned": true,
+    "cadStatus": "in Bearbeitung",
+    "cadReleased": false,
+    "screenshotFile": "fusion-export_Kabelklammer.png",
+    "screenshotOrientation": "isometric_top_right",
+    "screenshotBackground": "white",
+    "screenshotCropPaddingPx": 42
+  }
+}
