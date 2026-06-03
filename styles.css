@@ -1,0 +1,264 @@
+/* =========================================================
+   BT BOX – GLOBAL STYLES
+   ========================================================= */
+
+body {
+  font-family: Arial;
+  background: #f4f6f8;
+  margin: 40px;
+}
+
+/* =========================================================
+   LAYOUT
+   ========================================================= */
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  max-width: 700px;
+}
+
+/* =========================================================
+   DATA GRID (Produktdaten)
+   ========================================================= */
+
+.data-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+
+.data-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.data-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #2c3e50;
+}
+
+/* 2-Spalten Layout für CNC / 3D */
+.data-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+button {
+  margin-top: 10px;
+}
+
+button:not(.btn-primary) {
+  background: #ecf0f1;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:not(.btn-primary):hover {
+  background: #dfe6e9;
+}
+
+.btn-primary {
+  background: #2c3e50;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: #1a252f;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.btn-primary.ready {
+  border: 2px solid #27ae60;
+  box-shadow: 0 0 0 2px rgba(39,174,96,0.2);
+}
+
+/* =========================================================
+   TEXT / STATUS
+   ========================================================= */
+
+.ready-text {
+  color: #27ae60;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.mode-text {
+  color: #2980b9;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.warning {
+  color: #e67e22;
+  font-size: 0.9em;
+}
+
+/* =========================================================
+   STEP CARDS
+   ========================================================= */
+
+.step-card {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.step-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.step-meta {
+  font-size: 0.9em;
+  color: #555;
+  margin-bottom: 15px;
+}
+
+/* =========================================================
+   PROGRESS BAR
+   ========================================================= */
+
+.progress-container {
+  flex: 1;
+  margin: 0 15px;
+}
+
+.progress-bar {
+  height: 10px;
+  background: #e0e0e0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.progress-fill.done { background: #27ae60; }
+.progress-fill.ready { background: #f1c40f; }
+.progress-fill.progress { background: #3498db; }
+.progress-fill.empty { background: #e74c3c; }
+
+.progress-text {
+  font-size: 0.8em;
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* =========================================================
+   SUBSTEPS
+   ========================================================= */
+
+.substeps-inline {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin: 10px 0;
+}
+
+.substep-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.actions-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+/* =========================================================
+   BADGES
+   ========================================================= */
+
+.badge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.badge-red {
+  background: #e74c3c;
+  color: white;
+}
+
+.badge-yellow {
+  background: #f1c40f;
+  color: black;
+}
+
+.badge-green {
+  background: #27ae60;
+  color: white;
+}
+
+.badge-blue {
+  background: #3498db;
+  color: white;
+}
+
+/* =========================================================
+   TOAST
+   ========================================================= */
+
+.toast {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: #2c3e50;
+  color: white;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+  z-index: 9999;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.success {
+  background: #27ae60;
+}
+
+.toast.error {
+  background: #e74c3c;
+}
