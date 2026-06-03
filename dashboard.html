@@ -113,16 +113,25 @@ const firebaseConfig = {
   projectId: "i40-btbox"
 };
 
+// =====================================================
+// ⚙️ CONFIG LAYER
+// =====================================================
+
+const CONFIG = {
+  stepOrder: [
+    "Konstruktion",
+    "Fertigung",
+    "Vormontage",
+    "Endmontage",
+    "Endabnahme"
+  ],
+  refreshDebounceMs: 800
+};
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-const stepOrder = [
-  "Konstruktion",
-  "Fertigung",
-  "Vormontage",
-  "Endmontage",
-  "Endabnahme"
-];
+const stepOrder = CONFIG.stepOrder;
 
 const listDiv = document.getElementById("list");
 
@@ -132,6 +141,9 @@ let listeners = [];
 
 let metaLoadedIds = new Set();
 
+// =====================================================
+// 📦 DATA LAYER (Firebase + Fetch)
+// =====================================================
 async function loadAllMeta(ids){
 
   const missingIds = ids.filter(id => !metaLoadedIds.has(id));
@@ -160,6 +172,83 @@ async function loadAllMeta(ids){
   });
 }
 
+
+
+
+// =====================================================
+// 🧠 LOGIC LAYER (Berechnungen, KEIN DOM!)
+// =====================================================
+
+// 🔹 Letzte Aktivität eines Produkts berechnen
+function computeActivity(stepsSnap){
+
+  let latest = null;
+
+  stepsSnap.forEach(doc => {
+    const d = doc.data();
+
+    if(d.last_update){
+      if(!latest || d.last_update > latest.timestamp){
+        latest = {
+          user: d.last_user,
+          action: "Status geändert",
+          timestamp: d.last_update
+        };
+      }
+    }
+  });
+
+  if(!latest) return "Keine Aktivität";
+
+  return `${latest.user} – ${latest.action} – ${latest.timestamp}`;
+}
+
+
+// 🔹 Fortschritt berechnen (neu – ausgelagert)
+function computeProgress(stepMap){
+
+  let completed = 0;
+
+  Object.entries(stepMap).forEach(([id, step])=>{
+    if(step.status === "bestanden" && id !== "Endabnahme"){
+      completed++;
+    }
+  });
+
+  return Math.round((completed / (stepOrder.length - 1)) * 100);
+}
+
+// 🔹 Freigabe berechnen (neu – ausgelagert)
+function computeRelease(stepMap){
+  return stepMap["Endabnahme"]?.status === "bestanden";
+}
+
+
+// 🔹 Gesamtstatus eines Produkts berechnen (Fortschritt, Status, Freigabe, Aktivität)
+function computeProductState(stepsSnap){
+
+  const stepMap = {};
+
+  stepsSnap.forEach(doc=>{
+    stepMap[doc.id] = doc.data();
+  });
+
+  const percent = computeProgress(stepMap);
+
+  const status = getStatusFromSteps(stepMap);
+
+  const released = computeRelease(stepMap);
+
+  const activityText = computeActivity(stepsSnap);
+
+  return {
+    stepMap,
+    percent,
+    status,
+    released,
+    activityText
+  };
+}
 
 // 🔥 Substep Progress
 function getSubstepProgress(stepData){
@@ -271,7 +360,21 @@ function renderSubstepsOverview(stepsSnap){
   return html;
 }
 
-// 🚀 RENDER
+// =====================================================
+// 🎨 RENDER LAYER (DOM Manipulation)
+// =====================================================
+
+async function loadSteps(pid){
+  return await db.collection("products")
+    .doc(pid)
+    .collection("steps")
+    .get();
+}
+
+
+// =====================================================
+// 🎨 RENDER LAYER (DOM)
+// =====================================================
 async function renderDashboard(){
 
   const productsSnap = await db.collection("products").get();
@@ -281,62 +384,34 @@ async function renderDashboard(){
 
   let html = "";
 
+  // 🔥 NEU: Steps parallel laden
+  const stepsMap = {};
+
+  await Promise.all(
+    productsSnap.docs.map(async (doc) => {
+      stepsMap[doc.id] = await loadSteps(doc.id);
+    })
+  );
+
   for(const productDoc of productsSnap.docs){
 
     const pid = productDoc.id;
+
+    const stepsSnap = stepsMap[pid];
+    if(!stepsSnap){
+      console.warn("Keine Steps für", pid);
+      continue;
+    }
+
     const pdata = productDoc.data() || {};
     const meta = productMetaCache[pid] || {};
 
     const pname = meta.name;
     const group = meta.group;
 
-    const stepsSnap = await db.collection("products")
-      .doc(pid)
-      .collection("steps")
-      .get();
+    const computed = computeProductState(stepsSnap);
 
-    // 🔥 ZENTRAL: StepMap einmal aufbauen
-    const stepMap = {};
-    stepsSnap.forEach(doc=>{
-      stepMap[doc.id] = doc.data();
-    });
-
-    let completed = 0;
-    let latest = null;
-
-    stepsSnap.forEach(doc=>{
-      const d = doc.data();
-
-      if(d.status === "bestanden" && doc.id !== "Endabnahme") {
-        completed++;
-      }
-
-      if(d.last_update){
-
-        if(!latest || d.last_update > latest.timestamp){
-          latest = {
-            user: d.last_user,
-            action: "Status geändert",
-            timestamp: d.last_update
-          };
-        }
-      }
-    });
-
-    const percent = Math.round(
-      (completed / (stepOrder.length - 1)) * 100
-    );
-    const status = getStatusFromSteps(stepMap);
-
-    const released =
-      stepMap["Endabnahme"]?.status === "bestanden";
-
-    const qualityHTML = getQualityBadge(released);
-
-    let activityText = "Keine Aktivität";
-    if(latest){
-      activityText = `${latest.user} – ${latest.action} – ${latest.timestamp}`;
-    }
+    const qualityHTML = getQualityBadge(computed.released);
 
     const groupClass = group ? `group-${group}` : "";
 
@@ -345,7 +420,7 @@ async function renderDashboard(){
 
     html += `
       <div class="card ${groupClass}" 
-       style="${released ? 'border-left-color:#27ae60' : ''}"
+       style="${computed.released ? 'border-left-color:#27ae60' : ''}"
        onclick="openProduct('${pid}')">
 
         <div style="margin-bottom:5px;">
@@ -354,13 +429,13 @@ async function renderDashboard(){
         </div>
 
         <div class="bar">
-          <div class="bar-inner ${status}" style="width:${percent}%">
-            ${percent}%
+          <div class="bar-inner ${computed.status}" style="width:${computed.percent}%">
+            ${computed.percent}%
           </div>
         </div>
 
         <div style="margin-top:5px;">
-          ${getStatusBadge(status)}
+          ${getStatusBadge(computed.status)}
         </div>
         <div style="margin-top:5px;">${qualityHTML}</div>
 
@@ -368,7 +443,7 @@ async function renderDashboard(){
 
         <div class="activity">
           <b>Letzte Aktivität:</b><br>
-          ${activityText}
+          ${computed.activityText}
         </div>
 
       </div>
@@ -378,7 +453,9 @@ async function renderDashboard(){
   listDiv.innerHTML = html || "Keine Produkte vorhanden.";
 }
 
-// 🔥 REALTIME
+// =====================================================
+// 🔄 REALTIME LAYER
+// =====================================================
 async function startRealtime(){
 
   const productsSnap = await db.collection("products").get();
@@ -398,7 +475,7 @@ async function startRealtime(){
       renderTimeout = setTimeout(() => {
         renderDashboard();
         renderTimeout = null;
-      }, 800);
+      }, CONFIG.refreshDebounceMs);
     }
 
     const unsub = db.collection("products")
