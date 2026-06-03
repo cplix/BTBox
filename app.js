@@ -58,6 +58,7 @@ if (!id) {
 }
 
 let role = null;
+let selectedCadIndex = 0;
 const contentDiv = document.getElementById("content");
 
 const stepOrder = [
@@ -331,42 +332,51 @@ function renderCadCards(cadComponents){
     return `<div class="data-card">Keine Komponenten</div>`;
   }
 
-  return cadComponents.map(cad => {
+  const cad = cadComponents[selectedCadIndex] || cadComponents[0];
+  const comp = cad.components?.[0];
+  if(!comp) return "";
 
-    const comp = cad.components?.[0];
-    if(!comp) return "";
+  const compName = comp.name || cad._meta?.name || "Unbekannt";
+  const imagePath = `data/${id}/cad/${cad._meta.file.replace(".json",".png")}`;
 
-    const compName = comp.name || cad._meta?.name || "Unbekannt";
+  // 🔹 Build dropdown options
+  const options = cadComponents.map((c, i) => {
+    const name = c.components?.[0]?.name || c._meta?.name || `Komponente ${i+1}`;
+    return `<option value="${i}" ${i===selectedCadIndex?"selected":""}>${name}</option>`;
+  }).join("");
 
-    const imagePath = `data/${id}/cad/${cad._meta.file.replace(".json",".png")}`;
+  return `
+    <div class="data-card">
+      <div class="data-title">🧩 CAD – ${compName}</div>
 
-    return `
-      <div class="data-card">
-        <div class="data-title">🧩 CAD – ${compName}</div>
+      <div style="margin-bottom:10px;">
+        <select onchange="changeCadComponent(this.value)">
+          ${options}
+        </select>
+      </div>
 
-        <div class="data-card-grid">
+      <div class="data-card-grid">
 
-          <div>
-            Material: ${(comp.materials || []).join(", ")}<br>
-            Masse: ${comp.mass_g} g<br>
-          </div>
+        <div>
+          Material: ${(comp.materials || []).join(", ")}<br>
+          Masse: ${comp.mass_g} g<br>
+        </div>
 
-          <div>
-            Volumen: ${comp.volume_cm3} cm³<br>
-            ${comp.boundingBox_mm?.length} ×
-            ${comp.boundingBox_mm?.width} ×
-            ${comp.boundingBox_mm?.height} mm
-          </div>
+        <div>
+          Volumen: ${comp.volume_cm3} cm³<br>
+          ${comp.boundingBox_mm?.length} ×
+          ${comp.boundingBox_mm?.width} ×
+          ${comp.boundingBox_mm?.height} mm
+        </div>
 
-          <div class="data-image">
-            <img src="${imagePath}" onerror="this.style.display='none'">
-          </div>
-
+        <div class="data-image">
+          <img src="${imagePath}" onerror="this.style.display='none'">
         </div>
 
       </div>
-    `;
-  }).join("");
+
+    </div>
+  `;
 }
 
 
@@ -877,3 +887,7 @@ function startApp(){
 }
 
 contentDiv.style.display="none";
+function changeCadComponent(index){
+  selectedCadIndex = parseInt(index);
+  loadProductData();
+}
