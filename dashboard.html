@@ -107,6 +107,38 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 
 <script>
 
+async function cleanOldProducts(){
+
+  const idsToDelete = ["id001","id002","id003"];
+
+  for(const id of idsToDelete){
+
+    console.log("Lösche:", id);
+
+    const productRef = db.collection("products").doc(id);
+
+    // 🔥 Steps löschen
+    const stepsSnap = await productRef.collection("steps").get();
+
+    for(const stepDoc of stepsSnap.docs){
+
+      // History löschen
+      const histSnap = await stepDoc.ref.collection("history").get();
+
+      for(const h of histSnap.docs){
+        await h.ref.delete();
+      }
+
+      await stepDoc.ref.delete();
+    }
+
+    // 🔥 Produkt löschen
+    await productRef.delete();
+  }
+
+  console.log("✅ Cleanup fertig");
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSy...",
   authDomain: "i40-btbox.firebaseapp.com",
@@ -556,7 +588,8 @@ function openProduct(id){
   window.location.href = `index.html?id=${id}`;
 }
 
-startRealtime();
+// startRealtime(); // TEMP deaktiviert
+renderDashboard(); // einmaliger Load
 
 </script>
 
