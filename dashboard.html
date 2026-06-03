@@ -129,13 +129,21 @@ const listDiv = document.getElementById("list");
 let productMetaCache = {};
 let listeners = [];
 
-// 🔥 JSON PARALLEL
+
+let metaLoadedIds = new Set();
+
 async function loadAllMeta(ids){
 
-  const results = await Promise.all(ids.map(async id => {
+  const missingIds = ids.filter(id => !metaLoadedIds.has(id));
+
+  if(missingIds.length === 0) return;
+
+  const results = await Promise.all(missingIds.map(async id => {
     try {
-      const res = await fetch(`data/${id}.json`);
+      const res = await fetch(`data/${id}/${id}.json`);
+      if(!res.ok) throw new Error("meta not found");
       const json = await res.json();
+
       return {
         id,
         name: json.product_name || "Bluetooth-Box",
@@ -146,8 +154,12 @@ async function loadAllMeta(ids){
     }
   }));
 
-  results.forEach(r => productMetaCache[r.id] = r);
+  results.forEach(r => {
+    productMetaCache[r.id] = r;
+    metaLoadedIds.add(r.id);
+  });
 }
+
 
 // 🔥 Substep Progress
 function getSubstepProgress(stepData){
@@ -378,11 +390,22 @@ async function startRealtime(){
 
     const pid = productDoc.id;
 
+    let renderTimeout = null;
+
+    function triggerRender(){
+      if(renderTimeout) return;
+
+      renderTimeout = setTimeout(() => {
+        renderDashboard();
+        renderTimeout = null;
+      }, 800);
+    }
+
     const unsub = db.collection("products")
       .doc(pid)
       .collection("steps")
-      .onSnapshot(()=>{
-        renderDashboard();
+      .onSnapshot(() => {
+        triggerRender();
       });
 
     listeners.push(unsub);
@@ -390,9 +413,17 @@ async function startRealtime(){
 
   renderDashboard();
 
-  db.collection("products").onSnapshot(()=>{
-    startRealtime();
-  });
+  let productsListener = null;
+
+  function initProductsListener(){
+
+    if(productsListener) return;
+
+    productsListener = db.collection("products")
+      .onSnapshot(() => {
+        startRealtime();
+      });
+  }
 }
 
 function openProduct(id){
