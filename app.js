@@ -283,7 +283,7 @@ function renderObject(obj, level = 0){
 // 🧩 RENDERING FUNCTIONS (UI)
 // =========================================================
 function renderProductCard(cadComponents, group){
-  // 🔹 If no CAD data available → show fallback message
+
   if(!cadComponents || cadComponents.length === 0){
     return `
       <div class="data-card">
@@ -295,29 +295,41 @@ function renderProductCard(cadComponents, group){
 
   const cad = cadComponents[0];
 
+  const imagePath = `data/${id}/product.png`;
+
   return `
     <div class="data-card">
       <div class="data-title">📦 Produkt</div>
 
-      <b>${cad.productId}</b><br>
-      ${cad.selectedComponent?.hinweis || "-"}<br>
+      <div class="data-card-grid">
 
-      <br>
-    ${group?.link?.cad
-    ? `<a class="data-btn" href="${group.link.cad}" target="_blank">CAD öffnen</a>`
-    : `<span class="data-btn" style="background:#bdc3c7;">kein CAD-Link</span>`
-    }
+        <div>
+          <b>${cad.productId}</b><br>
+          ${cad.selectedComponent?.hinweis || "-"}
+        </div>
 
+        <div>
+          ${group?.link?.cad
+            ? `<a class="data-btn" href="${group.link.cad}" target="_blank">CAD öffnen</a>`
+            : `<span class="data-btn" style="background:#bdc3c7;">kein CAD-Link</span>`
+          }
+        </div>
+
+        <div class="data-image">
+          <img src="${imagePath}" onerror="this.style.display='none'">
+        </div>
+
+      </div>
     </div>
   `;
 }
 
 
 function renderCadCards(cadComponents){
-  // 🔹 Render one card per CAD component (multi-component support)
-    if(!cadComponents || cadComponents.length === 0){
-        return `<div class="data-card">Keine Komponenten</div>`;
-    }
+
+  if(!cadComponents || cadComponents.length === 0){
+    return `<div class="data-card">Keine Komponenten</div>`;
+  }
 
   return cadComponents.map(cad => {
 
@@ -326,18 +338,31 @@ function renderCadCards(cadComponents){
 
     const compName = comp.name || cad._meta?.name || "Unbekannt";
 
+    const imagePath = `data/${id}/cad/${cad._meta.file.replace(".json",".png")}`;
+
     return `
       <div class="data-card">
         <div class="data-title">🧩 CAD – ${compName}</div>
 
-        Material: ${(comp.materials || []).join(", ")}<br>
-        Masse: ${comp.mass_g} g<br>
-        Volumen: ${comp.volume_cm3} cm³<br>
+        <div class="data-card-grid">
 
-        Hüllmaße:
-        ${comp.boundingBox_mm?.length} ×
-        ${comp.boundingBox_mm?.width} ×
-        ${comp.boundingBox_mm?.height} mm
+          <div>
+            Material: ${(comp.materials || []).join(", ")}<br>
+            Masse: ${comp.mass_g} g<br>
+          </div>
+
+          <div>
+            Volumen: ${comp.volume_cm3} cm³<br>
+            ${comp.boundingBox_mm?.length} ×
+            ${comp.boundingBox_mm?.width} ×
+            ${comp.boundingBox_mm?.height} mm
+          </div>
+
+          <div class="data-image">
+            <img src="${imagePath}" onerror="this.style.display='none'">
+          </div>
+
+        </div>
 
       </div>
     `;
@@ -347,11 +372,12 @@ function renderCadCards(cadComponents){
 
 function renderCncCard(group, cnc){
   // 🔹 CNC card: left = configuration, right = live machine data
+  const imagePath = `data/${id}/cnc/fusion_cnc.png`;
   return `
     <div class="data-card">
       <div class="data-title">⚙️ CNC</div>
 
-      <div class="data-split">
+      <div class="data-card-grid">
 
         <div>
           <b>Vorgaben:</b><br>
@@ -370,6 +396,10 @@ function renderCncCard(group, cnc){
           Tool: ${cnc?.cnc?.tool || "-"}
         </div>
 
+        <div class="data-image">
+          <img src="${imagePath}" onerror="this.style.display='none'">
+        </div>
+
       </div>
     </div>
   `;
@@ -378,11 +408,12 @@ function renderCncCard(group, cnc){
 
 function renderPrintCard(group, print){
   // 🔹 3D print card: left = slicing config, right = printer live data
+  const imagePath = `data/${id}/3dprint/3dp-prusaslicer.png`;
   return `
     <div class="data-card">
       <div class="data-title">🖨️ 3D-Druck</div>
 
-      <div class="data-split">
+      <div class="data-card-grid">
 
         <div>
           <b>Vorgaben:</b><br>
@@ -401,6 +432,10 @@ function renderPrintCard(group, print){
           Infill: ${print?.print?.infill || "-"}
         </div>
 
+        <div class="data-image">
+          <img src="${imagePath}" onerror="this.style.display='none'">
+        </div>
+
       </div>
     </div>
   `;
@@ -412,14 +447,16 @@ async function loadProductData(){
   try {
     const { group, cadComponents, cnc, print } = await loadAllSources();
 
-    let html = `<h3>📦 Produktdaten</h3>`;
+    html += `<h3>📦 Produktdaten</h3>`;
     html += `<div class="data-grid">`;
-
     html += renderProductCard(cadComponents, group);
     html += renderCadCards(cadComponents);
+    html += `</div>`;
+
+    html += `<h3 class="section-title">🏭 Fertigungsdaten</h3>`;
+    html += `<div class="data-grid">`;
     html += renderCncCard(group, cnc);
     html += renderPrintCard(group, print);
-
     html += `</div>`;
 
     document.getElementById("productData").innerHTML = html;
