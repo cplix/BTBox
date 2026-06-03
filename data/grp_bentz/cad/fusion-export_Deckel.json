@@ -1,7 +1,7 @@
 {
   "source": "Autodesk Fusion",
   "exportVersion": "1.1",
-  "exportedAt": "2026-06-01T20:34:07",
+  "exportedAt": "2026-06-03T14:05:47",
   "productId": "NWS2602-v3-00_BTBox-Platine",
   "designName": "NWS2602-v3-00_BTbox-Platine v79",
   "selectedComponent": {
@@ -9,7 +9,8 @@
     "name": "Deckel",
     "hinweis": "Variante 3",
     "cadStatus": "in Bearbeitung",
-    "occurrenceName": "Deckel:1"
+    "occurrenceName": "Deckel:1",
+    "screenshot": "fusion-export_Deckel.png"
   },
   "components": [
     {
@@ -28,6 +29,7 @@
       },
       "bodyCount": 1,
       "cadStatus": "in Bearbeitung",
+      "screenshot": "fusion-export_Deckel.png",
       "bodies": [
         {
           "bodyName": "Deckel",
@@ -55,6 +57,10 @@
     "productIdAssigned": true,
     "componentIdAssigned": true,
     "cadStatus": "in Bearbeitung",
-    "cadReleased": false
+    "cadReleased": false,
+    "screenshotFile": "fusion-export_Deckel.png",
+    "screenshotOrientation": "isometric_top_right",
+    "screenshotBackground": "white",
+    "screenshotCropPaddingPx": 42
   }
 }
