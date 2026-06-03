@@ -459,13 +459,13 @@ async function loadProductData(){
     let html = "";
 
     html += `<h3>📦 Produktdaten</h3>`;
-    html += `<div class="data-grid">`;
+    html += `<div class="data-grid product-grid">`;
     html += renderProductCard(cadComponents, group);
     html += renderCadCards(cadComponents);
     html += `</div>`;
 
     html += `<h3 class="section-title">🏭 Fertigungsdaten</h3>`;
-    html += `<div class="data-grid">`;
+    html += `<div class="data-grid manufacturing-grid">`;
     html += renderCncCard(group, cnc);
     html += renderPrintCard(group, print);
     html += `</div>`;

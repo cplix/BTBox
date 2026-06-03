@@ -44,7 +44,15 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr 200px;
   gap: 15px;
-  align-items: center;
+  align-items: start;
+}
+
+.product-grid {
+  grid-template-columns: 1fr;
+}
+
+.manufacturing-grid {
+  grid-template-columns: 1fr;
 }
 
 .data-image {
