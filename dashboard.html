@@ -135,44 +135,7 @@ const stepOrder = CONFIG.stepOrder;
 
 const listDiv = document.getElementById("list");
 
-let productMetaCache = {};
 let listeners = [];
-
-
-let metaLoadedIds = new Set();
-
-// =====================================================
-// 📦 DATA LAYER (Firebase + Fetch)
-// =====================================================
-async function loadAllMeta(ids){
-
-  const missingIds = ids.filter(id => !metaLoadedIds.has(id));
-
-  if(missingIds.length === 0) return;
-
-  const results = await Promise.all(missingIds.map(async id => {
-    try {
-      const res = await fetch(`data/${id}/${id}.json`);
-      if(!res.ok) throw new Error("meta not found");
-      const json = await res.json();
-
-      return {
-        id,
-        name: json.product_name || "Bluetooth-Box",
-        group: json.group_name || null
-      };
-    } catch {
-      return { id, name:"Bluetooth-Box", group:null };
-    }
-  }));
-
-  results.forEach(r => {
-    productMetaCache[r.id] = r;
-    metaLoadedIds.add(r.id);
-  });
-}
-
-
 
 
 // =====================================================
@@ -380,8 +343,6 @@ async function loadSteps(pid){
 async function renderDashboard(){
 
   const productsSnap = await db.collection("products").get();
-  const ids = productsSnap.docs.map(d=>d.id);
-  await loadAllMeta(ids);
 
   let html = "";
 
@@ -405,10 +366,10 @@ async function renderDashboard(){
     }
 
     const pdata = productDoc.data() || {};
-    const meta = productMetaCache[pid] || {};
+    const meta = pdata;
 
-    const pname = meta.name;
-    const group = meta.group;
+    const pname = meta.product_name || "Bluetooth-Box";
+    const group = meta.group_name || null;
 
     const computed = computeProductState(stepsSnap);
 
@@ -530,10 +491,13 @@ function renderDashboardFromCache(stepsCache){
       return;
     }
 
-    const meta = productMetaCache[pid] || {};
+    // 🔥 Fetch minimal meta from Firestore document (if available)
+    const productRef = db.collection("products").doc(pid);
 
-    const pname = meta.name || "Bluetooth-Box";
-    const group = meta.group;
+    const productDoc = db.collection("products").doc(pid);
+    const pdata = productsMap[pid] || {};
+    const pname = pdata.product_name || "Bluetooth-Box";
+    const group = pdata.group_name || null;
 
     const computed = computeProductState(stepsSnap);
 
