@@ -303,9 +303,10 @@ function renderProductCard(cadComponents, group){
       ${cad.selectedComponent?.hinweis || "-"}<br>
 
       <br>
-      <a class="data-btn" href="${group?.link?.cad || "#"}" target="_blank">
-        CAD öffnen
-      </a>
+    ${group?.link?.cad
+    ? `<a class="data-btn" href="${group.link.cad}" target="_blank">CAD öffnen</a>`
+    : `<span class="data-btn" style="background:#bdc3c7;">kein CAD-Link</span>`
+    }
 
     </div>
   `;
@@ -314,7 +315,9 @@ function renderProductCard(cadComponents, group){
 
 function renderCadCards(cadComponents){
   // 🔹 Render one card per CAD component (multi-component support)
-  if(!cadComponents || cadComponents.length === 0) return "";
+    if(!cadComponents || cadComponents.length === 0){
+        return `<div class="data-card">Keine Komponenten</div>`;
+    }
 
   return cadComponents.map(cad => {
 
@@ -616,11 +619,71 @@ async function saveStep(stepId){
   const ref=db.collection("products").doc(id)
     .collection("steps").doc(stepId);
 
+
+// =====================================================
+// 🔥 Produkt-Aggregation für Dashboard
+// =====================================================
+
   await ref.update({
     status,
     last_update:time,
     last_user:user
   });
+
+
+  try {
+
+  const stepsSnap = await db.collection("products")
+    .doc(id)
+    .collection("steps")
+    .get();
+
+  const stepMap = {};
+
+  stepsSnap.forEach(doc => {
+    stepMap[doc.id] = doc.data();
+  });
+
+  let completed = 0;
+  const total = Object.keys(stepMap)
+    .filter(s => s !== "Endabnahme")
+    .length;
+
+  Object.entries(stepMap).forEach(([sid, step]) => {
+    if(step.status === "bestanden" && sid !== "Endabnahme"){
+      completed++;
+    }
+  });
+
+  const progress = total > 0
+    ? Math.round((completed / total) * 100)
+    : 0;
+
+  const anyProgress = Object.values(stepMap)
+    .some(s => Object.values(s.substeps || {}).some(v => v));
+
+  let globalStatus = "empty";
+
+  if(progress === 100 && stepMap["Endabnahme"]?.status === "bestanden"){
+    globalStatus = "done";
+  } else if(anyProgress){
+    globalStatus = "progress";
+  }
+
+  const released = stepMap["Endabnahme"]?.status === "bestanden";
+
+  await db.collection("products").doc(id).update({
+    progress,
+    status: globalStatus,
+    released,
+    last_update: time,
+    last_user: user
+  });
+
+} catch(e){
+console.warn("Aggregation failed", e);
+}
+
 
   await ref.collection("history").add({
     user,
