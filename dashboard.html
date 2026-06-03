@@ -381,7 +381,6 @@ async function renderDashboard(){
 
   const productsSnap = await db.collection("products").get();
   const ids = productsSnap.docs.map(d=>d.id);
-
   await loadAllMeta(ids);
 
   let html = "";
@@ -462,12 +461,20 @@ async function startRealtime(){
 
   const productsSnap = await db.collection("products").get();
 
+  // 🔥 Clear existing listeners
   listeners.forEach(unsub=>unsub());
   listeners = [];
+
+  // 🔥 Local cache for steps (NEW)
+  const stepsCache = {};
 
   for(const productDoc of productsSnap.docs){
 
     const pid = productDoc.id;
+
+    // 🔥 Initial load
+    const initialSnap = await loadSteps(pid);
+    stepsCache[pid] = initialSnap;
 
     let renderTimeout = null;
 
@@ -475,23 +482,27 @@ async function startRealtime(){
       if(renderTimeout) return;
 
       renderTimeout = setTimeout(() => {
-        renderDashboard();
+        renderDashboardFromCache(stepsCache);
         renderTimeout = null;
       }, CONFIG.refreshDebounceMs);
     }
 
+    // 🔥 Realtime listener (updates ONLY cache)
     const unsub = db.collection("products")
       .doc(pid)
       .collection("steps")
-      .onSnapshot(() => {
+      .onSnapshot((snap) => {
+        stepsCache[pid] = snap;
         triggerRender();
       });
 
     listeners.push(unsub);
   }
 
-  renderDashboard();
+  // 🔥 Initial render
+  renderDashboardFromCache(stepsCache);
 
+  // 🔥 Product listener (unchanged)
   let productsListener = null;
 
   function initProductsListener(){
@@ -503,6 +514,68 @@ async function startRealtime(){
         startRealtime();
       });
   }
+
+  initProductsListener();
+}
+
+// 🔥 NEW: Render using cache instead of reloading everything
+function renderDashboardFromCache(stepsCache){
+
+  let html = "";
+
+  Object.entries(stepsCache).forEach(([pid, stepsSnap]) => {
+
+    if(!stepsSnap){
+      console.warn("Keine Steps für", pid);
+      return;
+    }
+
+    const meta = productMetaCache[pid] || {};
+
+    const pname = meta.name || "Bluetooth-Box";
+    const group = meta.group;
+
+    const computed = computeProductState(stepsSnap);
+
+    const qualityHTML = getQualityBadge(computed.released);
+
+    const groupClass = group ? `group-${group}` : "";
+
+    const substepsHTML = renderSubstepsOverview(stepsSnap);
+
+    html += `
+      <div class="card ${groupClass}" 
+       style="${computed.released ? 'border-left-color:#27ae60' : ''}"
+       onclick="openProduct('${pid}')">
+
+        <div style="margin-bottom:5px;">
+          <b>${pname} (${pid})</b>
+          ${group ? `<span style="color:#555;"> | Gruppe: ${group}</span>` : ""}
+        </div>
+
+        <div class="bar">
+          <div class="bar-inner ${computed.status}" style="width:${computed.percent}%">
+            ${computed.percent}%
+          </div>
+        </div>
+
+        <div style="margin-top:5px;">
+          ${getStatusBadge(computed.status)}
+        </div>
+        <div style="margin-top:5px;">${qualityHTML}</div>
+
+        ${substepsHTML}
+
+        <div class="activity">
+          <b>Letzte Aktivität:</b><br>
+          ${computed.activityText}
+        </div>
+
+      </div>
+    `;
+  });
+
+  listDiv.innerHTML = html || "Keine Produkte vorhanden.";
 }
 
 function openProduct(id){
