@@ -465,6 +465,7 @@ async function loadProductData(){
   try {
     const { group, cadComponents, cnc, print } = await loadAllSources();
     cachedSources = { group, cadComponents, cnc, print };
+    syncSnapshotToFirestore(cachedSources);
     let html = "";
 
     html += `<h3>📦 Produktdaten</h3>`;
@@ -502,6 +503,14 @@ function isStepUnlocked(stepId,data){
 async function initSteps(){
   const productRef = db.collection("products").doc(id);
   await productRef.set({created:true},{merge:true});
+
+  // === PART B: Write minimal product snapshot fields on init (one-time)
+  await productRef.set({
+    _completed: 0,
+    _total: stepOrder.length - 1,
+    _endDone: false,
+    _lastStepStatus: {}
+  }, { merge: true });
 
   await Promise.all(stepOrder.map(async step => {
     const ref = productRef.collection("steps").doc(step);
@@ -680,7 +689,6 @@ async function saveStep(stepId){
 // =====================================================
 // 🔥 Produkt-Aggregation für Dashboard
 // =====================================================
-
   await ref.update({
     status,
     last_update:time,
@@ -688,58 +696,69 @@ async function saveStep(stepId){
   });
 
 
+  // =====================================================
+  // 🔥 Produkt-Aggregation für Dashboard (INCREMENTAL, no full collection read)
+  // =====================================================
   try {
+    const productRef = db.collection("products").doc(id);
+    const productSnap = await productRef.get();
+    const productData = productSnap.exists ? productSnap.data() : {};
 
-  const stepsSnap = await db.collection("products")
-    .doc(id)
-    .collection("steps")
-    .get();
+    // previous aggregates (fallbacks)
+    let progress = productData.progress || 0;
+    let globalStatus = productData.status || "empty";
+    let released = productData.released || false;
 
-  const stepMap = {};
+    // compute flags from current step update only
+    const isEnd = stepId === "Endabnahme";
+    const isDone = status === "bestanden";
 
-  stepsSnap.forEach(doc => {
-    stepMap[doc.id] = doc.data();
-  });
+    // maintain counters in product doc
+    let completed = productData._completed || 0;
+    const total = productData._total || (stepOrder.length - 1); // exclude Endabnahme
 
-  let completed = 0;
-  const total = Object.keys(stepMap)
-    .filter(s => s !== "Endabnahme")
-    .length;
-
-  Object.entries(stepMap).forEach(([sid, step]) => {
-    if(step.status === "bestanden" && sid !== "Endabnahme"){
-      completed++;
+    if(!isEnd){
+      // adjust completed counter if status changed
+      const prevStatus = productData._lastStepStatus?.[stepId];
+      if(prevStatus !== "bestanden" && isDone) completed++;
+      if(prevStatus === "bestanden" && !isDone) completed--;
     }
-  });
 
-  const progress = total > 0
-    ? Math.round((completed / total) * 100)
-    : 0;
+    progress = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const anyProgress = Object.values(stepMap)
-    .some(s => Object.values(s.substeps || {}).some(v => v));
+    if(progress === 100 && (isEnd && isDone || productData._endDone)){
+      globalStatus = "done";
+    } else if(progress > 0){
+      globalStatus = "progress";
+    } else {
+      globalStatus = "empty";
+    }
 
-  let globalStatus = "empty";
+    if(isEnd){
+      released = isDone;
+    }
 
-  if(progress === 100 && stepMap["Endabnahme"]?.status === "bestanden"){
-    globalStatus = "done";
-  } else if(anyProgress){
-    globalStatus = "progress";
+    // persist lightweight snapshot for dashboard (NO extra reads needed there)
+    await productRef.set({
+      progress,
+      status: globalStatus,
+      released,
+      last_update: time,
+      last_user: user,
+
+      // internal counters (avoid collection scans)
+      _completed: completed,
+      _total: total,
+      _endDone: isEnd ? isDone : (productData._endDone || false),
+      _lastStepStatus: {
+        ...(productData._lastStepStatus || {}),
+        [stepId]: status
+      }
+    }, { merge: true });
+
+  } catch(e){
+    console.warn("Aggregation failed", e);
   }
-
-  const released = stepMap["Endabnahme"]?.status === "bestanden";
-
-  await db.collection("products").doc(id).update({
-    progress,
-    status: globalStatus,
-    released,
-    last_update: time,
-    last_user: user
-  });
-
-} catch(e){
-console.warn("Aggregation failed", e);
-}
 
 
   await ref.collection("history").add({
@@ -765,6 +784,70 @@ console.warn("Aggregation failed", e);
   }
 
   showToast("✔ Gespeichert");
+}
+
+
+async function syncSnapshotToFirestore(sources){
+  try {
+    const { group, cadComponents, cnc, print } = sources;
+    const productRef = db.collection("products").doc(id);
+
+    const cad = cadComponents?.[selectedCadIndex] || cadComponents?.[0];
+    const comp = cad?.components?.[0];
+
+    await productRef.set({
+
+      // 🔹 Basisdaten
+      product_name: group?.product_name || "-",
+      group_name: group?.group_name || "-",
+
+      // 🔹 CAD Snapshot
+      cad: cad ? {
+        component: comp?.name || "-",
+        componentId: comp?.componentId || "-",
+        material: (comp?.materials || []).join(", "),
+        mass: comp?.mass_g || "-",
+        volume: comp?.volume_cm3 || "-",
+        bbox: comp?.boundingBox_mm
+          ? `${comp.boundingBox_mm.length}×${comp.boundingBox_mm.width}×${comp.boundingBox_mm.height}`
+          : "-",
+        status: comp?.cadStatus || cad?.selectedComponent?.cadStatus || "-",
+        hinweis: cad?.selectedComponent?.hinweis || comp?.hinweis || "-",
+        exportedAt: cad?.exportedAt || null
+      } : {},
+
+      // 🔹 CNC Snapshot
+      cnc: {
+        component: group?.manufacturing?.cnc?.component || "-",
+        machine: group?.manufacturing?.cnc?.machine || "-",
+        material: group?.manufacturing?.cnc?.material || "-",
+        tool: group?.manufacturing?.cnc?.tool || "-",
+
+        source: cnc?.source || "-",
+        control: cnc?.control || "-",
+        speed: cnc?.cnc?.speed || "-",
+        feed: cnc?.cnc?.feed || "-"
+      },
+
+      // 🔹 3D-Druck Snapshot
+      print: {
+        component: group?.manufacturing?.["3d_print"]?.component || "-",
+        machine: group?.manufacturing?.["3d_print"]?.machine || "-",
+        material: group?.manufacturing?.["3d_print"]?.material || "-",
+        layer_height: group?.manufacturing?.["3d_print"]?.layer_height || "-",
+        perimeter: group?.manufacturing?.["3d_print"]?.perimeter || "-",
+        infill: group?.manufacturing?.["3d_print"]?.infill || "-",
+
+        live_filament: print?.print?.filament || "-",
+        live_layer_height: print?.print?.layer_height || "-",
+        live_infill: print?.print?.infill || "-"
+      }
+
+    }, { merge: true });
+
+  } catch(e){
+    console.warn("Snapshot sync failed", e);
+  }
 }
 
 
@@ -803,15 +886,15 @@ async function loadAllSources(){
       index.components.map(c => {
         const fileName = c.file.trim();
         const url = `${base}/cad/${fileName}`;
-        console.log("Loading CAD file:", url);
+        // console.log("Loading CAD file:", url);
 
         return fetch(url)
           .then(r => {
             if (!r.ok) {
-              console.error("❌ CAD fetch failed:", url, r.status);
+              // console.error("❌ CAD fetch failed:", url, r.status);
               throw new Error(`CAD file missing: ${fileName}`);
             }
-            console.log("✅ CAD loaded:", fileName);
+            // console.log("✅ CAD loaded:", fileName);
             return r.json();
           })
           .then(data => ({
@@ -839,13 +922,11 @@ async function loadAllSources(){
     print = await res.json();
   } catch {}
 
-  console.log("LOADED:", {
-    group,
-    cadComponentsCount: cadComponents.length,
-    cadComponents,
-    cnc,
-    print
-  });
+  // === PART D: (Optional safety) reduce console noise in loadAllSources ===
+  const DEBUG = false;
+  if(DEBUG){
+    console.log("LOADED:", { group, cadComponentsCount: cadComponents.length, cnc, print });
+  }
   return { group, cadComponents, cnc, print };
 }
 
@@ -895,6 +976,17 @@ function startApp(){
   listenSteps();
 }
 
+// === PART C: Expose Firestore-only listener entry (for dashboard usage)
+// Firestore-only product listener (for dashboard or header widgets)
+function listenProductDoc(callback){
+  return db.collection("products").doc(id)
+    .onSnapshot(snap => {
+      if(snap.exists){
+        callback(snap.data());
+      }
+    });
+}
+
 contentDiv.style.display="none";
 function changeCadComponent(index){
   selectedCadIndex = parseInt(index);
@@ -907,4 +999,5 @@ function changeCadComponent(index){
   if(container){
     container.innerHTML = renderCadCards(cadComponents);
   }
+  syncSnapshotToFirestore(cachedSources);
 }

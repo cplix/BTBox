@@ -167,127 +167,6 @@ const stepOrder = CONFIG.stepOrder;
 
 const listDiv = document.getElementById("list");
 
-let listeners = [];
-let productsMap = {};
-
-
-// =====================================================
-// 🧠 LOGIC LAYER (Berechnungen, KEIN DOM!)
-// =====================================================
-
-// 🔹 Letzte Aktivität eines Produkts berechnen
-function computeActivity(stepsSnap){
-
-  let latest = null;
-
-  stepsSnap.forEach(doc => {
-    const d = doc.data();
-
-    if(d.last_update){
-      const t = new Date(d.last_update);
-
-      if(!latest || t > latest.timestamp){
-        latest = {
-          user: d.last_user,
-          action: "Status geändert",
-          timestamp: t
-        };
-      }
-    }
-  });
-
-  if(!latest) return "Keine Aktivität";
-
-  return `${latest.user} – ${latest.action} – ${latest.timestamp.toLocaleString()}`;
-}
-
-
-// 🔹 Fortschritt berechnen (neu – ausgelagert)
-function computeProgress(stepMap){
-
-  let completed = 0;
-
-  Object.entries(stepMap).forEach(([id, step])=>{
-    if(step.status === "bestanden" && id !== "Endabnahme"){
-      completed++;
-    }
-  });
-
-  return Math.round((completed / (stepOrder.length - 1)) * 100);
-}
-
-// 🔹 Freigabe berechnen (neu – ausgelagert)
-function computeRelease(stepMap){
-  return stepMap["Endabnahme"]?.status === "bestanden";
-}
-
-
-// 🔹 Gesamtstatus eines Produkts berechnen (Fortschritt, Status, Freigabe, Aktivität)
-function computeProductState(stepsSnap){
-
-  const stepMap = {};
-
-  stepsSnap.forEach(doc=>{
-    stepMap[doc.id] = doc.data();
-  });
-
-  const percent = computeProgress(stepMap);
-
-  const status = getStatusFromSteps(stepMap);
-
-  const released = computeRelease(stepMap);
-
-  const activityText = computeActivity(stepsSnap);
-
-  return {
-    stepMap,
-    percent,
-    status,
-    released,
-    activityText
-  };
-}
-
-// 🔥 Substep Progress
-function getSubstepProgress(stepData){
-
-  const sub = stepData.substeps || {};
-  const values = Object.values(sub);
-
-  if(values.length === 0) return null;
-
-  const done = values.filter(v => v).length;
-  const total = values.length;
-
-  return {
-    percent: Math.round((done / total) * 100),
-    done,
-    total
-  };
-}
-
-// 🔥 Farbe je Fortschritt
-function getColor(percent){
-  if(percent < 30) return "#e74c3c";
-  if(percent < 70) return "#f1c40f";
-  return "#27ae60";
-}
-
-function getStatusFromSteps(stepMap){
-
-  const totalSteps = Object.keys(stepMap).length;
-
-  const doneSteps = Object.values(stepMap)
-    .filter(s => s.status === "bestanden").length;
-
-  const anyProgress = Object.values(stepMap)
-    .some(s => Object.values(s.substeps || {}).some(v=>v));
-
-  if(doneSteps === totalSteps) return "done";
-  if(anyProgress) return "progress";
-
-  return "empty";
-}
 
 function getStatusBadge(status){
 
@@ -309,287 +188,79 @@ function getQualityBadge(released){
     : `<span class="badge badge-red">nicht freigegeben</span>`;
 }
 
-// 🔥 Substep Übersicht
-function renderSubstepsOverview(stepsSnap){
-
-  const stepMap = {};
-  stepsSnap.forEach(doc=>{
-    stepMap[doc.id] = doc.data();
-  });
-
-  let html = `<div style="
-    display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap:8px;
-    margin-top:10px;
-  ">`;
-
-  stepOrder.forEach(stepId => {
-
-    const data = stepMap[stepId];
-
-    let percent = 0;
-
-    if(data){
-      const prog = getSubstepProgress(data);
-      if(prog) percent = prog.percent;
-    }
-
-    const color = getColor(percent);
-
-    html += `
-      <div style="text-align:center; font-size:11px;">
-
-        <b>${stepId}</b>
-
-        <div class="sub-bar" style="margin-top:4px;">
-          <div class="sub-bar-inner"
-            style="width:${percent}%; background:${color}">
-          </div>
-        </div>
-
-        ${percent > 0 ? percent + "%" : ""}
-
-      </div>
-    `;
-  });
-
-  html += `</div>`;
-  return html;
-}
-
-// =====================================================
-// 🎨 RENDER LAYER (DOM Manipulation)
-// =====================================================
-
-async function loadSteps(pid){
-  return await db.collection("products")
-    .doc(pid)
-    .collection("steps")
-    .get();
-}
-
 
 // =====================================================
 // 🎨 RENDER LAYER (DOM)
 // =====================================================
-async function renderDashboard(){
 
-  const productsSnap = await db.collection("products").get();
-  productsMap = {};
+function startRealtime(){
 
-  productsSnap.forEach(doc => {
-    productsMap[doc.id] = doc.data();
-  });
+  db.collection("products")
+    .onSnapshot(snap => {
 
-  let html = "";
-
-  // 🔥 NEU: Steps parallel laden
-  const stepsMap = {};
-
-  await Promise.all(
-    productsSnap.docs.map(async (doc) => {
-      stepsMap[doc.id] = await loadSteps(doc.id);
-    })
-  );
-
-  for(const productDoc of productsSnap.docs){
-
-    const pid = productDoc.id;
-
-    const stepsSnap = stepsMap[pid];
-    if(!stepsSnap){
-      console.warn("Keine Steps für", pid);
-      continue;
-    }
-
-    const pdata = productDoc.data() || {};
-    const meta = pdata;
-
-    const pname = meta.product_name || "Bluetooth-Box";
-    const group = meta.group_name || null;
-
-    const computed = computeProductState(stepsSnap);
-
-    const qualityHTML = getQualityBadge(computed.released);
-
-    const groupClass = group ? `group-${group}` : "";
-
-    // 🔥 NEU: Substeps
-    const substepsHTML = renderSubstepsOverview(stepsSnap);
-
-    html += `
-      <div class="card ${groupClass}" 
-       style="${computed.released ? 'border-left-color:#27ae60' : ''}"
-       onclick="openProduct('${pid}')">
-
-        <div style="margin-bottom:5px;">
-          <b>${pname} (${pid})</b>
-          ${group ? `<span style="color:#555;"> | Gruppe: ${group}</span>` : ""}
-        </div>
-
-        <div class="bar">
-          <div class="bar-inner ${computed.status}" style="width:${computed.percent}%">
-            ${computed.percent}%
-          </div>
-        </div>
-
-        <div style="margin-top:5px;">
-          ${getStatusBadge(computed.status)}
-        </div>
-        <div style="margin-top:5px;">${qualityHTML}</div>
-
-        ${substepsHTML}
-
-        <div class="activity">
-          <b>Letzte Aktivität:</b><br>
-          ${computed.activityText}
-        </div>
-
-      </div>
-    `;
-  }
-
-  listDiv.innerHTML = html || "Keine Produkte vorhanden.";
-}
-
-// =====================================================
-// 🔄 REALTIME LAYER
-// =====================================================
-async function startRealtime(){
-
-  const productsSnap = await db.collection("products").get();
-
-  // 🔥 Clear existing listeners
-  listeners.forEach(unsub=>unsub());
-  listeners = [];
-
-  // 🔥 Local cache for steps (NEW)
-  const stepsCache = {};
-
-  for(const productDoc of productsSnap.docs){
-
-    const pid = productDoc.id;
-
-    // 🔥 Initial load
-    const initialSnap = await loadSteps(pid);
-    stepsCache[pid] = initialSnap;
-
-    let renderTimeout = null;
-
-    function triggerRender(){
-      if(renderTimeout) return;
-
-      renderTimeout = setTimeout(() => {
-        renderDashboardFromCache(stepsCache);
-        renderTimeout = null;
-      }, CONFIG.refreshDebounceMs);
-    }
-
-    // 🔥 Realtime listener (updates ONLY cache)
-    const unsub = db.collection("products")
-      .doc(pid)
-      .collection("steps")
-      .onSnapshot((snap) => {
-        stepsCache[pid] = snap;
-        triggerRender();
-      });
-
-    listeners.push(unsub);
-  }
-
-  // 🔥 Initial render
-  renderDashboardFromCache(stepsCache);
-
-  // 🔥 Product listener (unchanged)
-  let productsListener = null;
-
-  function initProductsListener(){
-
-    if(productsListener) return;
-
-    productsListener = db.collection("products")
-    .onSnapshot((snap) => {
-
-      productsMap = {};
+      let html = "";
 
       snap.forEach(doc => {
-        productsMap[doc.id] = doc.data();
+
+        const p = doc.data();
+
+        const pname = p.product_name || "Bluetooth-Box";
+        const group = p.group_name || "";
+        const percent = p.progress || 0;
+        const status = p.status || "empty";
+        const released = p.released || false;
+        const lastUser = p.last_user || "-";
+        const lastUpdate = p.last_update
+          ? new Date(p.last_update).toLocaleString("de-DE", {
+              dateStyle: "short",
+              timeStyle: "short"
+            })
+          : "-";
+
+        const groupClass = group ? `group-${group}` : "";
+
+        html += `
+          <div class="card ${groupClass}"
+            onclick="openProduct('${doc.id}')">
+
+            <div style="margin-bottom:5px;">
+              <b>${pname} (${doc.id})</b>
+              ${group ? `<span style="color:#555;"> | Gruppe: ${group}</span>` : ""}
+            </div>
+
+            <div class="bar">
+              <div class="bar-inner ${status}" style="width:${percent}%">
+                ${percent}%
+              </div>
+            </div>
+
+            <div style="margin-top:5px;">
+              ${getStatusBadge(status)}
+            </div>
+
+            <div style="margin-top:5px;">
+              ${getQualityBadge(released)}
+            </div>
+
+            <div class="activity">
+              👤 ${lastUser}<br>
+              🕒 ${lastUpdate}
+            </div>
+
+          </div>
+        `;
       });
 
-      renderDashboardFromCache(stepsCache);
+      listDiv.innerHTML = html || "Keine Produkte vorhanden.";
     });
-  }
-
-  initProductsListener();
 }
 
-// 🔥 NEW: Render using cache instead of reloading everything
-function renderDashboardFromCache(stepsCache){
-
-  let html = "";
-
-  Object.entries(stepsCache).forEach(([pid, stepsSnap]) => {
-
-    if(!stepsSnap){
-      console.warn("Keine Steps für", pid);
-      return;
-    }
-
-    // 🔥 Fetch minimal meta from Firestore document (if available)
-    const pdata = productsMap[pid] || {};
-    const pname = pdata.product_name || "Bluetooth-Box";
-    const group = pdata.group_name || null;
-
-    const computed = computeProductState(stepsSnap);
-
-    const qualityHTML = getQualityBadge(computed.released);
-
-    const groupClass = group ? `group-${group}` : "";
-
-    const substepsHTML = renderSubstepsOverview(stepsSnap);
-
-    html += `
-      <div class="card ${groupClass}" 
-       style="${computed.released ? 'border-left-color:#27ae60' : ''}"
-       onclick="openProduct('${pid}')">
-
-        <div style="margin-bottom:5px;">
-          <b>${pname} (${pid})</b>
-          ${group ? `<span style="color:#555;"> | Gruppe: ${group}</span>` : ""}
-        </div>
-
-        <div class="bar">
-          <div class="bar-inner ${computed.status}" style="width:${computed.percent}%">
-            ${computed.percent}%
-          </div>
-        </div>
-
-        <div style="margin-top:5px;">
-          ${getStatusBadge(computed.status)}
-        </div>
-        <div style="margin-top:5px;">${qualityHTML}</div>
-
-        ${substepsHTML}
-
-        <div class="activity">
-          <b>Letzte Aktivität:</b><br>
-          ${computed.activityText}
-        </div>
-
-      </div>
-    `;
-  });
-
-  listDiv.innerHTML = html || "Keine Produkte vorhanden.";
-}
 
 function openProduct(id){
   window.location.href = `index.html?id=${id}`;
 }
 
-// startRealtime(); // TEMP deaktiviert
-renderDashboard(); // einmaliger Load
+startRealtime();
 
 </script>
 
