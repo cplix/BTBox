@@ -227,7 +227,7 @@ async function loadProductName(){
     if (json.group_name) groupName = json.group_name;
   } catch {}
 
-  let html = `Produkt: <b>${productName}</b>`;
+  let html = `Produkt: <b>${productName} 🔊</b>`;
   if (groupName) html += `<br><small>Gruppe: ${groupName}</small>`;
   document.getElementById("productTitle").innerHTML = html;
 }
