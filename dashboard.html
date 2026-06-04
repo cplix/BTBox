@@ -217,11 +217,26 @@ function startRealtime(){
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
         let percent = 0;
-        if(p.steps && Object.keys(p.steps).length > 0){
-          const stepValues = Object.values(p.steps);
-          const totalSteps = stepValues.length;
-          const sum = stepValues.reduce((acc, s) => acc + (s.progress || 0), 0);
-          percent = Math.round(sum / totalSteps);
+        let totalSubs = 0;
+        let doneSubs = 0;
+
+        if(p.steps){
+          stepOrder.forEach(stepName => {
+            const step = p.steps[stepName];
+
+            if(step && step.substeps && Array.isArray(step.substeps)){
+              totalSubs += step.substeps.length;
+              doneSubs += step.substeps.filter(s => s.done === true).length;
+            }
+          });
+
+          if(totalSubs > 0){
+            percent = Math.round((doneSubs / totalSubs) * 100);
+          } else {
+            // fallback if no substeps present
+            percent = typeof p.progress === "number" ? p.progress : 0;
+          }
+
         } else {
           percent = typeof p.progress === "number" ? p.progress : 0;
         }
@@ -248,7 +263,14 @@ function startRealtime(){
 
         stepOrder.forEach(stepName => {
           const step = steps && steps[stepName] ? steps[stepName] : null;
-          const percent = step && typeof step.progress === 'number' ? step.progress : 0;
+          let percent = 0;
+          if(step && step.substeps && Array.isArray(step.substeps)){
+            const total = step.substeps.length;
+            const done = step.substeps.filter(s => s.done === true).length;
+            percent = total > 0 ? Math.round((done / total) * 100) : 0;
+          } else if(step && typeof step.progress === 'number'){
+            percent = step.progress;
+          }
 
           substepsHTML += `
             <div style="min-width:120px;">
