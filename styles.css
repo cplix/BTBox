@@ -1,4 +1,4 @@
-/* =========================================================
+/ * =========================================================
    BT BOX – GLOBAL STYLES
    ========================================================= */
 
@@ -42,6 +42,15 @@ body {
   border-radius: 8px;
   border: 1px solid #e0e0e0;
   overflow: hidden;
+}
+
+/* 🔹 Produkt vs Fertigung visuell trennen */
+.product-grid .data-card {
+  background: #f9fafb;
+}
+
+.manufacturing-grid .data-card {
+  background: #f4f8fb;
 }
 
 .data-card b {
@@ -176,10 +185,28 @@ button:not(.btn-primary):hover {
    ========================================================= */
 
 .step-card {
-  background: white;
+  background: #ffffff;
   padding: 20px;
   border-radius: 10px;
   margin-bottom: 20px;
+  border: 1px solid #e3e6ea;
+}
+
+/* 🔹 Prozessstatus-Hintergründe */
+.step-card.empty {
+  background: #fdf2f2;
+}
+
+.step-card.progress {
+  background: #eef6fc;
+}
+
+.step-card.ready {
+  background: #fff8e6;
+}
+
+.step-card.done {
+  background: #edf7f0;
 }
 
 .step-top {
