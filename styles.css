@@ -16,7 +16,7 @@ body {
   background: white;
   padding: 20px;
   border-radius: 10px;
-  max-width: 700px;
+  max-width: 1000px;
 }
 
 /* =========================================================
@@ -34,10 +34,19 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #2c3e50;
   background: #f9fafb;
   padding: 12px;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
+}
+
+.data-card b {
+  display: inline-block;
+  min-width: 90px;
+  color: #7f8c8d;
 }
 
 .data-card-grid {
@@ -45,6 +54,10 @@ body {
   grid-template-columns: 1fr 1fr 200px;
   gap: 15px;
   align-items: start;
+}
+
+.data-block {
+  margin-bottom: 10px;
 }
 
 .product-grid {
@@ -60,8 +73,8 @@ body {
 }
 
 .data-image img {
-  max-width: 180px;
-  max-height: 120px;
+  max-width: 200px;
+  max-height: 140px;
   object-fit: contain;
   border-radius: 6px;
 }
@@ -73,7 +86,8 @@ body {
 .section-title {
   grid-column: 1 / -1;
   font-weight: bold;
-  font-size: 16px;
+  font-size: 15px;
+  margin-bottom: 10px;
   margin-top: 10px;
 }
 

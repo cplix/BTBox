@@ -359,6 +359,7 @@ function renderCadCards(cadComponents){
 
         <div>
           Material: ${(comp.materials || []).join(", ")}<br>
+          <br>
           Masse: ${comp.mass_g} g<br>
         </div>
 
@@ -389,7 +390,7 @@ function renderCncCard(group, cnc){
 
       <div class="data-card-grid">
 
-        <div>
+        <div class="data-block">
           <b>Vorgaben:</b><br>
           Bauteil: ${group?.manufacturing?.cnc?.component || "-"}<br>
           Maschine: ${group?.manufacturing?.cnc?.machine || "-"}<br>
@@ -397,7 +398,7 @@ function renderCncCard(group, cnc){
           Werkzeug: ${group?.manufacturing?.cnc?.tool || "-"}<br>
         </div>
 
-        <div>
+        <div class="data-block">
           <b>Live:</b><br>
           Quelle: ${cnc?.source || "-"}<br>
           Steuerung: ${cnc?.control || "-"}<br>
@@ -425,7 +426,7 @@ function renderPrintCard(group, print){
 
       <div class="data-card-grid">
 
-        <div>
+        <div class="data-block">
           <b>Vorgaben:</b><br>
           Bauteil: ${group?.manufacturing?.["3d_print"]?.component || "-"}<br>
           Maschine: ${group?.manufacturing?.["3d_print"]?.machine || "-"}<br>
@@ -435,7 +436,7 @@ function renderPrintCard(group, print){
           Infill: ${group?.manufacturing?.["3d_print"]?.infill || "-"}<br>
         </div>
 
-        <div>
+        <div class="data-block">
           <b>Live:</b><br>
           Material: ${print?.print?.filament || "-"}<br>
           Schichthoehe: ${print?.print?.layer_hight || "-"}<br>
