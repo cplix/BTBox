@@ -761,7 +761,7 @@ async function saveStep(stepId){
     // =====================================================
 
     const stepProgress = await (async () => {
-      if(!stepRef) return 0;
+      if(!stepOrder.includes(stepId)) return 0;
 
       const config = subStepsConfig[stepId] || [];
       const stepDoc = await ref.get();
@@ -775,6 +775,22 @@ async function saveStep(stepId){
     })();
 
     await productRef.set({
+      progress,
+      status: globalStatus,
+      released,
+      last_update: time,
+      last_user: user,
+
+      // internal counters (avoid collection scans)
+      _completed: completed,
+      _total: total,
+      _endDone: isEnd ? isDone : (productData._endDone || false),
+      _lastStepStatus: {
+        ...(productData._lastStepStatus || {}),
+        [stepId]: status
+      },
+
+      // 🔹 Steps Snapshot
       steps: {
         ...(productData.steps || {}),
         [stepId]: {
