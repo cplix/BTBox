@@ -756,6 +756,37 @@ async function saveStep(stepId){
       }
     }, { merge: true });
 
+    // =====================================================
+    // 🔹 Steps Snapshot für Dashboard (leichtgewichtig)
+    // =====================================================
+
+    const stepProgress = await (async () => {
+      const stepRef = stepOrder.includes(stepId) ? stepId : null;
+      if(!stepRef) return 0;
+
+      const config = subStepsConfig[stepId] || [];
+      // reuse existing ref
+      const stepDoc = await ref.get();
+      const stepDoc = await ref.get();
+      const stepData = stepDoc.data() || {};
+      const subs = stepData.substeps || {};
+
+      const totalSubs = Object.keys(subs).length;
+      const doneSubs = Object.values(subs).filter(v => v).length;
+
+      return totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : 0;
+    })();
+
+    await productRef.set({
+      steps: {
+        ...(productData.steps || {}),
+        [stepId]: {
+          progress: stepProgress,
+          status: status
+        }
+      }
+    }, { merge: true });
+
   } catch(e){
     console.warn("Aggregation failed", e);
   }
