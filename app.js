@@ -808,7 +808,13 @@ async function saveStep(stepId){
         ...(productData.steps || {}),
         [stepId]: {
           progress: stepProgress,
-          status: status
+          status: status,
+
+          // 🔥 NEU: Substeps speichern
+          substeps: Object.entries(subs).map(([key, value]) => ({
+            name: key,
+            done: value === true
+          }))
         }
       }
     }, { merge: true });
