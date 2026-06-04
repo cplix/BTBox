@@ -48,10 +48,14 @@ const FILES = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 🔥 FIX für GitHub Pages / Browser Blocking (stabiler Ansatz)
+// 🔥 Stabiler Firestore Transport (GitHub Pages kompatibel)
 db.settings({
-  experimentalAutoDetectLongPolling: true
+  experimentalForceLongPolling: true,
+  useFetchStreams: false
 });
+
+// 🔕 Reduziere Firestore Konsole-Noise
+firebase.firestore.setLogLevel('error');
 
 window.addEventListener('load', () => {
   console.log("Firestore long-polling fix active");
