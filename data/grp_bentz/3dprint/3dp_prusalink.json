@@ -3,7 +3,7 @@
   "control": "FW 3.14.1",
   "print": {
       "filament": "PLA",
-      "layer_hight": "0.2 mm",
+      "layer_height": "0.2 mm",
       "infill": "Honeycomb"
     }
 }

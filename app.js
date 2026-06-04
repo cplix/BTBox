@@ -32,8 +32,6 @@ DESIGN PRINCIPLES:
 
 =========================================================
 */
-console.log("APP LOADED");
-
 const firebaseConfig = {
   apiKey: "AIzaSyAf4taN1T3l75PHuoTc-5Y4T62ED2Om1TA",
   authDomain: "i40-btbox.firebaseapp.com",
@@ -59,6 +57,7 @@ if (!id) {
 
 let role = null;
 let selectedCadIndex = 0;
+let cachedSources = null;
 const contentDiv = document.getElementById("content");
 
 const stepOrder = [
@@ -358,14 +357,23 @@ function renderCadCards(cadComponents){
       <div class="data-card-grid">
 
         <div>
-          Material: ${(comp.materials || []).join(", ")}<br>
-          Masse: ${comp.mass_g} g<br>
+          ID: ${comp.componentId || "-"}<br>
+          Hinweis: ${comp.hinweis || cad.selectedComponent?.hinweis || "-"}<br>
+          Status: ${comp.cadStatus || cad.selectedComponent?.cadStatus || "-"}
         </div>
 
         <div>
+          Material: ${(comp.materials || []).join(", ")}<br>
+          Masse: ${comp.mass_g} g<br>
           Volumen: ${comp.volume_cm3} cm³<br>
           Hüllmaß: ${comp.boundingBox_mm
             ? `${comp.boundingBox_mm.length} × ${comp.boundingBox_mm.width} × ${comp.boundingBox_mm.height} mm`
+            : "-"}<br>
+          Export: ${cad.exportedAt 
+            ? new Date(cad.exportedAt).toLocaleString("de-DE", { 
+                dateStyle: "short", 
+                timeStyle: "short" 
+              }) 
             : "-"}
         </div>
 
@@ -438,7 +446,7 @@ function renderPrintCard(group, print){
         <div class="data-block">
           <b>Live:</b><br>
           Material: ${print?.print?.filament || "-"}<br>
-          Schichthoehe: ${print?.print?.layer_hight || "-"}<br>
+          Schichthoehe: ${print?.print?.layer_height || "-"}<br>
           Infill: ${print?.print?.infill || "-"}
         </div>
 
@@ -456,12 +464,13 @@ async function loadProductData(){
   // 🔹 Main UI composition for product data section
   try {
     const { group, cadComponents, cnc, print } = await loadAllSources();
+    cachedSources = { group, cadComponents, cnc, print };
     let html = "";
 
     html += `<h3>📦 Produktdaten</h3>`;
     html += `<div class="data-grid product-grid">`;
     html += renderProductCard(cadComponents, group);
-    html += renderCadCards(cadComponents);
+    html += `<div id="cadContainer">${renderCadCards(cadComponents)}</div>`;
     html += `</div>`;
 
     html += `<h3 class="section-title">🏭 Fertigungsdaten</h3>`;
@@ -889,5 +898,13 @@ function startApp(){
 contentDiv.style.display="none";
 function changeCadComponent(index){
   selectedCadIndex = parseInt(index);
-  loadProductData();
+
+  if(!cachedSources) return;
+
+  const { cadComponents } = cachedSources;
+  const container = document.getElementById("cadContainer");
+
+  if(container){
+    container.innerHTML = renderCadCards(cadComponents);
+  }
 }
