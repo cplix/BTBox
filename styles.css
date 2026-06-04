@@ -1,4 +1,4 @@
-/ * =========================================================
+/* =========================================================
    BT BOX – GLOBAL STYLES
    ========================================================= */
 
@@ -190,6 +190,7 @@ button:not(.btn-primary):hover {
   border-radius: 10px;
   margin-bottom: 20px;
   border: 1px solid #e3e6ea;
+  transition: all 0.2s ease;
 }
 
 /* 🔹 Prozessstatus-Hintergründe */
@@ -207,6 +208,10 @@ button:not(.btn-primary):hover {
 
 .step-card.done {
   background: #edf7f0;
+}
+
+.step-card:hover {
+  transform: translateY(-1px);
 }
 
 .step-top {
