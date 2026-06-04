@@ -359,7 +359,6 @@ function renderCadCards(cadComponents){
 
         <div>
           Material: ${(comp.materials || []).join(", ")}<br>
-          <br>
           Masse: ${comp.mass_g} g<br>
         </div>
 
