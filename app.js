@@ -364,9 +364,9 @@ function renderCadCards(cadComponents){
 
         <div>
           Volumen: ${comp.volume_cm3} cm³<br>
-          ${comp.boundingBox_mm?.length} ×
-          ${comp.boundingBox_mm?.width} ×
-          ${comp.boundingBox_mm?.height} mm
+          Hüllmaß: ${comp.boundingBox_mm
+            ? `${comp.boundingBox_mm.length} × ${comp.boundingBox_mm.width} × ${comp.boundingBox_mm.height} mm`
+            : "-"}
         </div>
 
         <div class="data-image">
