@@ -87,7 +87,9 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 /* 🔥 Substep Styling */
 .substep-block {
   margin-top:10px;
-  font-size:12px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 .sub-bar {
@@ -95,6 +97,7 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
   height:6px;
   border-radius:4px;
   margin-top:2px;
+  width:100px;
 }
 
 .sub-bar-inner {
@@ -242,10 +245,10 @@ function startRealtime(){
             const percent = step.progress || 0;
 
             substepsHTML += `
-              <div>
-                ${stepName}
+              <div style="min-width:120px;">
+                <div style="font-weight:bold; font-size:11px;">${stepName}</div>
                 <div class="sub-bar">
-                  <div class="sub-bar-inner" style="width:${percent}%; background:#3498db;"></div>
+                  <div class="sub-bar-inner" style="width:${percent}%; background:${percent === 100 ? '#27ae60' : percent > 0 ? '#3498db' : '#e74c3c'};"></div>
                 </div>
               </div>
             `;
