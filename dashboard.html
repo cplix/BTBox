@@ -216,7 +216,15 @@ function startRealtime(){
 
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
-        const percent = typeof p.progress === "number" ? p.progress : 0;
+        let percent = 0;
+        if(p.steps && Object.keys(p.steps).length > 0){
+          const stepValues = Object.values(p.steps);
+          const totalSteps = stepValues.length;
+          const sum = stepValues.reduce((acc, s) => acc + (s.progress || 0), 0);
+          percent = Math.round(sum / totalSteps);
+        } else {
+          percent = typeof p.progress === "number" ? p.progress : 0;
+        }
         const percentLabel = percent === 0 ? "" : percent + "%";
         const status = p.status || "empty";
         const released = p.released || false;
