@@ -761,7 +761,6 @@ async function saveStep(stepId){
     // =====================================================
 
     const stepProgress = await (async () => {
-      const stepRef = stepOrder.includes(stepId) ? stepId : null;
       if(!stepRef) return 0;
 
       const config = subStepsConfig[stepId] || [];
