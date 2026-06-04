@@ -468,13 +468,13 @@ async function loadProductData(){
     syncSnapshotToFirestore(cachedSources);
     let html = "";
 
-    html += `<h3>📦 Produktdaten</h3>`;
+    html += `<div class="section-title">📦 Produktdaten</div>`;
     html += `<div class="data-grid product-grid">`;
     html += renderProductCard(cadComponents, group);
     html += `<div id="cadContainer">${renderCadCards(cadComponents)}</div>`;
     html += `</div>`;
 
-    html += `<h3 class="section-title">🏭 Fertigungsdaten</h3>`;
+    html += `<div class="section-title">🛠 Fertigungsdaten</div>`;
     html += `<div class="data-grid manufacturing-grid">`;
     html += renderCncCard(group, cnc);
     html += renderPrintCard(group, print);
