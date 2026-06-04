@@ -224,9 +224,9 @@ function startRealtime(){
           stepOrder.forEach(stepName => {
             const step = p.steps[stepName];
 
-            if(step && step.substeps && Array.isArray(step.substeps)){
-              totalSubs += step.substeps.length;
-              doneSubs += step.substeps.filter(s => s.done === true).length;
+            if(step && step.substeps && typeof step.substeps === 'object'){
+              totalSubs += Object.keys(step.substeps).length;
+              doneSubs += Object.values(step.substeps).filter(v => v === true).length;
             }
           });
 
@@ -264,9 +264,9 @@ function startRealtime(){
         stepOrder.forEach(stepName => {
           const step = steps && steps[stepName] ? steps[stepName] : null;
           let percent = 0;
-          if(step && step.substeps && Array.isArray(step.substeps)){
-            const total = step.substeps.length;
-            const done = step.substeps.filter(s => s.done === true).length;
+          if(step && step.substeps && typeof step.substeps === 'object'){
+            const total = Object.keys(step.substeps).length;
+            const done = Object.values(step.substeps).filter(v => v === true).length;
             percent = total > 0 ? Math.round((done / total) * 100) : 0;
           } else if(step && typeof step.progress === 'number'){
             percent = step.progress;
