@@ -243,27 +243,24 @@ function startRealtime(){
 
         const steps = p.steps || null;
 
-        let substepsHTML = "";
+        // 🔹 Always render all main steps (from config), even if no data yet
+        substepsHTML = `<div class="substep-block">`;
 
-        if(steps){
-          substepsHTML = `<div class="substep-block">`;
+        stepOrder.forEach(stepName => {
+          const step = steps && steps[stepName] ? steps[stepName] : null;
+          const percent = step && typeof step.progress === 'number' ? step.progress : 0;
 
-          Object.keys(steps).forEach(stepName => {
-            const step = steps[stepName];
-            const percent = step.progress || 0;
-
-            substepsHTML += `
-              <div style="min-width:120px;">
-                <div style="font-weight:bold; font-size:11px;">${stepName}</div>
-                <div class="sub-bar">
-                  <div class="sub-bar-inner" style="width:${percent}%; background:${percent === 100 ? '#27ae60' : percent > 0 ? '#3498db' : '#e74c3c'};"></div>
-                </div>
+          substepsHTML += `
+            <div style="min-width:120px;">
+              <div style="font-weight:bold; font-size:11px;">${stepName}</div>
+              <div class="sub-bar">
+                <div class="sub-bar-inner" style="width:${percent}%; background:${percent === 100 ? '#27ae60' : percent > 0 ? '#3498db' : '#e74c3c'};"></div>
               </div>
-            `;
-          });
+            </div>
+          `;
+        });
 
-          substepsHTML += `</div>`;
-        }
+        substepsHTML += `</div>`;
 
         const groupClass = group ? `group-${group.replace("grp_", "").replace(/^[a-z]/, c => c.toUpperCase())}` : "";
 
