@@ -48,9 +48,13 @@ const FILES = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+window.addEventListener('load', () => {
+  console.log("Firestore transport fix active");
+});
 // 🔥 FIX für GitHub Pages / Browser Blocking
 firebase.firestore().settings({
-  experimentalForceLongPolling: true
+  experimentalForceLongPolling: true,
+  useFetchStreams: false
 });
 
 const id = new URLSearchParams(window.location.search).get("id");
