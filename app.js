@@ -48,6 +48,11 @@ const FILES = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// 🔥 FIX für GitHub Pages / Browser Blocking
+firebase.firestore().settings({
+  experimentalForceLongPolling: true
+});
+
 const id = new URLSearchParams(window.location.search).get("id");
 
 if (!id) {
