@@ -765,8 +765,6 @@ async function saveStep(stepId){
       if(!stepRef) return 0;
 
       const config = subStepsConfig[stepId] || [];
-      // reuse existing ref
-      const stepDoc = await ref.get();
       const stepDoc = await ref.get();
       const stepData = stepDoc.data() || {};
       const subs = stepData.substeps || {};
