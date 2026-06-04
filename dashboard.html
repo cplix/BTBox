@@ -37,6 +37,10 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
   color:white;
   text-align:center;
   font-size:12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 2px;
 }
 
 /* 🔥 STATUS-FARBEN (wie Detailseite) */
@@ -226,6 +230,30 @@ function startRealtime(){
                 }))
           : "-";
 
+        const steps = p.steps || null;
+
+        let substepsHTML = "";
+
+        if(steps){
+          substepsHTML = `<div class="substep-block">`;
+
+          Object.keys(steps).forEach(stepName => {
+            const step = steps[stepName];
+            const percent = step.progress || 0;
+
+            substepsHTML += `
+              <div>
+                ${stepName}
+                <div class="sub-bar">
+                  <div class="sub-bar-inner" style="width:${percent}%; background:#3498db;"></div>
+                </div>
+              </div>
+            `;
+          });
+
+          substepsHTML += `</div>`;
+        }
+
         const groupClass = group ? `group-${group.replace("grp_", "").replace(/^[a-z]/, c => c.toUpperCase())}` : "";
 
         html += `
@@ -255,6 +283,8 @@ function startRealtime(){
               👤 ${lastUser}<br>
               🕒 ${lastUpdate}
             </div>
+
+            ${substepsHTML}
 
           </div>
         `;
