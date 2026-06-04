@@ -41,6 +41,7 @@ body {
   padding: 14px;
   border-radius: 8px;
   border: 1px solid #e0e0e0;
+  overflow: hidden;
 }
 
 .data-card b {
@@ -52,7 +53,7 @@ body {
 
 .data-card-grid {
   display: grid;
-  grid-template-columns: 1.2fr 1.2fr 170px;
+  grid-template-columns: 1.2fr 1.2fr minmax(120px, 170px);
   gap: 15px;
   align-items: start;
 }
@@ -70,11 +71,15 @@ body {
 }
 
 .data-image {
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
   text-align: right;
 }
 
 .data-image img {
-  max-width: 200px;
+  max-width: 100%;
+  width: 100%;
   max-height: 140px;
   object-fit: contain;
   border-radius: 6px;
