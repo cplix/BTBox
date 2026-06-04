@@ -204,33 +204,42 @@ function startRealtime(){
 
         const p = doc.data();
 
+        // 🔥 filter: only show real product docs (skip legacy ids)
+        if(!p.product_name) return;
+
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
-        const percent = p.progress || 0;
+        const percent = typeof p.progress === "number" ? p.progress : 0;
+        const percentLabel = percent === 0 ? "" : percent + "%";
         const status = p.status || "empty";
         const released = p.released || false;
-        const lastUser = p.last_user || "-";
+        const lastUser = p.last_user || "keine Aktivität";
         const lastUpdate = p.last_update
-          ? new Date(p.last_update).toLocaleString("de-DE", {
-              dateStyle: "short",
-              timeStyle: "short"
-            })
+          ? (p.last_update.toDate
+              ? p.last_update.toDate().toLocaleString("de-DE", {
+                  dateStyle: "short",
+                  timeStyle: "short"
+                })
+              : new Date(p.last_update).toLocaleString("de-DE", {
+                  dateStyle: "short",
+                  timeStyle: "short"
+                }))
           : "-";
 
-        const groupClass = group ? `group-${group}` : "";
+        const groupClass = group ? `group-${group.replace("grp_", "").replace(/^[a-z]/, c => c.toUpperCase())}` : "";
 
         html += `
           <div class="card ${groupClass}"
             onclick="openProduct('${doc.id}')">
 
             <div style="margin-bottom:5px;">
-              <b>${pname} (${doc.id})</b>
-              ${group ? `<span style="color:#555;"> | Gruppe: ${group}</span>` : ""}
+              <b>${pname}</b>
+              ${group ? `<span style="color:#555;"> (${group})</span>` : ""}
             </div>
 
             <div class="bar">
               <div class="bar-inner ${status}" style="width:${percent}%">
-                ${percent}%
+                ${percentLabel}
               </div>
             </div>
 
