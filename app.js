@@ -810,11 +810,8 @@ async function saveStep(stepId){
           progress: stepProgress,
           status: status,
 
-          // 🔥 NEU: Substeps speichern
-          substeps: Object.entries(subs).map(([key, value]) => ({
-            name: key,
-            done: value === true
-          }))
+          // 🔥 FIX: Substeps als Objekt speichern (konsistent mit App)
+          substeps: subs
         }
       }
     }, { merge: true });
