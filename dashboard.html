@@ -261,11 +261,20 @@ function startRealtime(){
           const step = steps && steps[stepName] ? steps[stepName] : null;
           let stepPercent = 0;
 
-          if(step && step.substeps && typeof step.substeps === 'object'){
-            const total = Object.keys(step.substeps).length;
-            const done = Object.values(step.substeps).filter(v => v === true).length;
-            stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
-          } else if(step && typeof step.progress === 'number'){
+          // 🔥 PRIMARY SOURCE: _lastStepStatus (from Firestore root doc)
+          if(p._lastStepStatus && p._lastStepStatus[stepName]){
+            const s = p._lastStepStatus[stepName];
+
+            if(s === "bestanden"){
+              stepPercent = 100;
+            } else if(s === "nicht bestanden"){
+              stepPercent = 0;
+            } else {
+              stepPercent = 0;
+            }
+          }
+          // 🔥 FALLBACK: legacy steps field (if ever present)
+          else if(step && typeof step.progress === 'number'){
             stepPercent = step.progress;
           }
 
