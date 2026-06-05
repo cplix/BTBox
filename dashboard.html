@@ -37,17 +37,35 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
   color:white;
   text-align:center;
   font-size:12px;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 4px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding-bottom:4px;
+
+  /* 🔥 Smooth animation */
+  transition: width 0.6s ease-in-out, background 0.6s ease-in-out;
+
+  /* 🔥 Default gradient (fallback) */
+  background: linear-gradient(90deg, #3498db, #6dd5fa);
 }
 
-/* 🔥 STATUS-FARBEN (wie Detailseite) */
-.bar-inner.done { background:#27ae60; }
-.bar-inner.ready { background:#f1c40f; color:black; }
-.bar-inner.progress { background:#3498db; }
-.bar-inner.empty { background:#e74c3c; }
+/* 🔥 Gradient by status */
+.bar-inner.done {
+  background: linear-gradient(90deg, #1e8449, #2ecc71);
+}
+
+.bar-inner.progress {
+  background: linear-gradient(90deg, #2980b9, #6dd5fa);
+}
+
+.bar-inner.ready {
+  background: linear-gradient(90deg, #f39c12, #f7dc6f);
+  color:black;
+}
+
+.bar-inner.empty {
+  background: linear-gradient(90deg, #c0392b, #e74c3c);
+}
 
 /* 🔥 STATUS BADGES (wie Detailseite) */
 .badge {
@@ -103,6 +121,7 @@ body { font-family: Arial; background:#f4f6f8; margin:40px; }
 .sub-bar-inner {
   height:100%;
   border-radius:4px;
+  transition: width 0.6s ease-in-out, background 0.6s ease-in-out;
 }
 </style>
 </head>
