@@ -216,17 +216,41 @@ function startRealtime(){
 
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
-        const completed = Number(p._completed) || 0;
-        const total = Number(p._total) || 0;
 
+        const completed = Number(p._completed) || 0;
+
+        // 🔥 NEW: total steps = all main steps (including Endabnahme)
+        const totalSteps = stepOrder.length;
+
+        // 🔥 NEW: find current step (first not "bestanden")
+        let currentPartial = 0;
+
+        if(p._lastStepStatus){
+          for(const stepName of stepOrder){
+            const s = p._lastStepStatus[stepName];
+
+            if(s !== "bestanden"){
+              // use partial progress if available
+              if(p.steps && p.steps[stepName] && typeof p.steps[stepName].progress === "number"){
+                currentPartial = p.steps[stepName].progress / 100;
+              }
+              break;
+            }
+          }
+        }
+
+        // 🔥 FINAL CALC: full steps + partial current step
         let percent = 0;
-        if(total > 0){
-          percent = Math.round((completed / total) * 100);
+
+        if(totalSteps > 0){
+          percent = Math.round(((completed + currentPartial) / totalSteps) * 100);
         }
 
         // clamp safety
         if(percent < 0) percent = 0;
         if(percent > 100) percent = 100;
+
+        const total = Number(p._total) || 0;
 
         const percentLabel = percent === 0 ? "" : percent + "%";
         let status = "empty";
