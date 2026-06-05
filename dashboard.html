@@ -217,25 +217,33 @@ function startRealtime(){
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
         let percent = 0;
-        let totalSubs = 0;
-        let doneSubs = 0;
-
         if(p.steps){
+          let totalSteps = 0;
+          let sumSteps = 0;
+
           stepOrder.forEach(stepName => {
             const step = p.steps[stepName];
 
-            if(step && step.substeps && typeof step.substeps === 'object'){
-              totalSubs += Object.keys(step.substeps).length;
-              doneSubs += Object.values(step.substeps).filter(v => v === true).length;
+            if(step){
+              // 🔥 PRIORITY 1: Substeps vorhanden → exakt berechnen
+              if(step.substeps && typeof step.substeps === 'object'){
+                const total = Object.keys(step.substeps).length;
+                const done = Object.values(step.substeps).filter(v => v === true).length;
+
+                if(total > 0){
+                  sumSteps += Math.round((done / total) * 100);
+                  totalSteps++;
+                }
+
+              // 🔥 PRIORITY 2: fallback auf step.progress
+              } else if(typeof step.progress === 'number'){
+                sumSteps += step.progress;
+                totalSteps++;
+              }
             }
           });
 
-          if(totalSubs > 0){
-            percent = Math.round((doneSubs / totalSubs) * 100);
-          } else {
-            // fallback if no substeps present
-            percent = typeof p.progress === "number" ? p.progress : 0;
-          }
+          percent = totalSteps > 0 ? Math.round(sumSteps / totalSteps) : 0;
 
         } else {
           percent = typeof p.progress === "number" ? p.progress : 0;
