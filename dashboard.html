@@ -218,7 +218,6 @@ function startRealtime(){
         const group = p.group_name || "";
         let percent = 0;
         if(p.steps){
-          let totalSteps = 0;
           let sumSteps = 0;
 
           stepOrder.forEach(stepName => {
@@ -230,20 +229,23 @@ function startRealtime(){
                 const total = Object.keys(step.substeps).length;
                 const done = Object.values(step.substeps).filter(v => v === true).length;
 
-                if(total > 0){
-                  sumSteps += Math.round((done / total) * 100);
-                  totalSteps++;
-                }
+                const stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
+                sumSteps += stepPercent;
 
               // 🔥 PRIORITY 2: fallback auf step.progress
               } else if(typeof step.progress === 'number'){
                 sumSteps += step.progress;
-                totalSteps++;
+              } else {
+                sumSteps += 0;
               }
+            } else {
+              // 🔥 fehlender Schritt = 0%
+              sumSteps += 0;
             }
           });
 
-          percent = totalSteps > 0 ? Math.round(sumSteps / totalSteps) : 0;
+          // 🔥 IMMER durch alle Schritte teilen
+          percent = Math.round(sumSteps / stepOrder.length);
 
         } else {
           percent = typeof p.progress === "number" ? p.progress : 0;
