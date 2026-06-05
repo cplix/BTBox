@@ -217,34 +217,35 @@ function startRealtime(){
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
         let percent = 0;
-        if(p.steps){
+
+        // 🔥 FIX: Use Firestore aggregated values if available
+        if(typeof p._completed === 'number' && typeof p._total === 'number' && p._total > 0){
+          percent = Math.round((p._completed / p._total) * 100);
+
+        // 🔥 fallback: legacy step-based calculation
+        } else if(p.steps){
           let sumSteps = 0;
 
           stepOrder.forEach(stepName => {
             const step = p.steps[stepName];
 
             if(step){
-              // 🔥 PRIORITY 1: Substeps vorhanden → exakt berechnen
               if(step.substeps && typeof step.substeps === 'object'){
                 const total = Object.keys(step.substeps).length;
                 const done = Object.values(step.substeps).filter(v => v === true).length;
-
                 const stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
                 sumSteps += stepPercent;
 
-              // 🔥 PRIORITY 2: fallback auf step.progress
               } else if(typeof step.progress === 'number'){
                 sumSteps += step.progress;
               } else {
                 sumSteps += 0;
               }
             } else {
-              // 🔥 fehlender Schritt = 0%
               sumSteps += 0;
             }
           });
 
-          // 🔥 IMMER durch alle Schritte teilen
           percent = Math.round(sumSteps / stepOrder.length);
 
         } else {
