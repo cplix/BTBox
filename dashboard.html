@@ -218,41 +218,19 @@ function startRealtime(){
         const group = p.group_name || "";
         let percent = 0;
 
-        // 🔥 FIX: Use Firestore aggregated values if available
         if(typeof p._completed === 'number' && typeof p._total === 'number' && p._total > 0){
           percent = Math.round((p._completed / p._total) * 100);
-
-        // 🔥 fallback: legacy step-based calculation
-        } else if(p.steps){
-          let sumSteps = 0;
-
-          stepOrder.forEach(stepName => {
-            const step = p.steps[stepName];
-
-            if(step){
-              if(step.substeps && typeof step.substeps === 'object'){
-                const total = Object.keys(step.substeps).length;
-                const done = Object.values(step.substeps).filter(v => v === true).length;
-                const stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
-                sumSteps += stepPercent;
-
-              } else if(typeof step.progress === 'number'){
-                sumSteps += step.progress;
-              } else {
-                sumSteps += 0;
-              }
-            } else {
-              sumSteps += 0;
-            }
-          });
-
-          percent = Math.round(sumSteps / stepOrder.length);
-
-        } else {
-          percent = typeof p.progress === "number" ? p.progress : 0;
         }
         const percentLabel = percent === 0 ? "" : percent + "%";
-        const status = p.status || "empty";
+        let status = "empty";
+
+        if(percent === 100){
+          status = "done";
+        } else if(percent > 0){
+          status = "progress";
+        } else {
+          status = "empty";
+        }
         const released = p.released || false;
         const lastUser = p.last_user || "keine Aktivität";
         const lastUpdate = p.last_update
