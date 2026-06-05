@@ -216,11 +216,18 @@ function startRealtime(){
 
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
-        let percent = 0;
+        const completed = Number(p._completed) || 0;
+        const total = Number(p._total) || 0;
 
-        if(typeof p._completed === 'number' && typeof p._total === 'number' && p._total > 0){
-          percent = Math.round((p._completed / p._total) * 100);
+        let percent = 0;
+        if(total > 0){
+          percent = Math.round((completed / total) * 100);
         }
+
+        // clamp safety
+        if(percent < 0) percent = 0;
+        if(percent > 100) percent = 100;
+
         const percentLabel = percent === 0 ? "" : percent + "%";
         let status = "empty";
 
@@ -252,20 +259,24 @@ function startRealtime(){
 
         stepOrder.forEach(stepName => {
           const step = steps && steps[stepName] ? steps[stepName] : null;
-          let percent = 0;
+          let stepPercent = 0;
+
           if(step && step.substeps && typeof step.substeps === 'object'){
             const total = Object.keys(step.substeps).length;
             const done = Object.values(step.substeps).filter(v => v === true).length;
-            percent = total > 0 ? Math.round((done / total) * 100) : 0;
+            stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
           } else if(step && typeof step.progress === 'number'){
-            percent = step.progress;
+            stepPercent = step.progress;
           }
+
+          if(stepPercent < 0) stepPercent = 0;
+          if(stepPercent > 100) stepPercent = 100;
 
           substepsHTML += `
             <div style="min-width:120px;">
               <div style="font-weight:bold; font-size:11px;">${stepName}</div>
               <div class="sub-bar">
-                <div class="sub-bar-inner" style="width:${percent}%; background:${percent === 100 ? '#27ae60' : percent > 0 ? '#3498db' : '#e74c3c'};"></div>
+                <div class="sub-bar-inner" style="width:${stepPercent}%; background:${stepPercent === 100 ? '#27ae60' : stepPercent > 0 ? '#3498db' : '#e74c3c'};"></div>
               </div>
             </div>
           `;
