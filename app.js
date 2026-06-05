@@ -682,6 +682,41 @@ async function toggleSub(stepId){
   }
 
   await ref.update({ substeps: sub });
+
+  // 🔥 NEW: sofort Progress berechnen und in Firestore spiegeln
+  try {
+    const config = subStepsConfig[stepId] || [];
+
+    let totalSubs = 0;
+    let doneSubs = 0;
+
+    config.forEach(s => {
+      totalSubs++;
+      if(sub[s.id] === true) doneSubs++;
+    });
+
+    const stepProgress = totalSubs > 0
+      ? Math.round((doneSubs / totalSubs) * 100)
+      : 0;
+
+    const productRef = db.collection("products").doc(id);
+    const productSnap = await productRef.get();
+    const productData = productSnap.exists ? productSnap.data() : {};
+
+    await productRef.set({
+      steps: {
+        ...(productData.steps || {}),
+        [stepId]: {
+          ...(productData.steps?.[stepId] || {}),
+          progress: stepProgress,
+          substeps: sub
+        }
+      }
+    }, { merge: true });
+
+  } catch(e){
+    console.warn("toggleSub progress sync failed", e);
+  }
 }
 
 async function saveStep(stepId){
