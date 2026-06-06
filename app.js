@@ -615,8 +615,6 @@ html += `
 
   ${subHTML}
 
-  ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
-
   <div class="actions-row">
     <button onclick="toggleHistory('${stepId}')">📜 Verlauf</button>
   </div>
