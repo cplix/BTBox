@@ -526,10 +526,7 @@ async function initSteps(){
       (subStepsConfig[step]||[]).forEach(s=>substeps[s.id]=false);
 
       return ref.set({
-        status:"nicht bestanden",
-        substeps,
-        last_update:"",
-        last_user:""
+        substeps
       });
     }
   }));
