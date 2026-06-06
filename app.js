@@ -585,12 +585,6 @@ html += `
 
   ${subHTML}
 
-  <div class="actions-row">
-    <button onclick="toggleHistory('${stepId}')">📜 Verlauf</button>
-  </div>
-
-  <div id="hist_${stepId}" class="history">Lade...</div>
-
 </div>
 `;
 
@@ -763,38 +757,6 @@ async function loadAllSources(){
 }
 
 
-async function toggleHistory(stepId){
-
-  const div = document.getElementById("hist_"+stepId);
-
-  if(div.style.display==="block"){
-    div.style.display="none";
-    return;
-  }
-
-  div.style.display="block";
-  div.innerHTML="Lade...";
-
-  const snap = await db.collection("products")
-    .doc(id).collection("steps")
-    .doc(stepId).collection("history")
-    .orderBy("timestamp","desc").limit(10).get();
-
-  let html="<table><tr><th>Zeit</th><th>User</th><th>Status</th><th>Aktion</th></tr>";
-
-  snap.forEach(d=>{
-    const h=d.data();
-    html+=`<tr>
-      <td>${h.timestamp}</td>
-      <td>${h.user}</td>
-      <td>${h.status||"-"}</td>
-      <td>${h.action}</td>
-    </tr>`;
-  });
-
-  html+="</table>";
-  div.innerHTML=html;
-}
 
 // =========================================================
 // 🚀 APPLICATION STARTUP
