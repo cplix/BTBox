@@ -236,36 +236,27 @@ function startRealtime(){
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
 
-        const completed = Number(p._completed) || 0;
+        const steps = p.steps || {};
 
-        // 🔥 NEW: total steps = all main steps (including Endabnahme)
-        const totalSteps = stepOrder.length;
+        let totalSteps = 0;
+        let sumProgress = 0;
 
-        // 🔥 NEW: find current step (first not "bestanden")
-        let currentPartial = 0;
+        stepOrder.forEach(stepName => {
+          totalSteps++;
+          const step = steps[stepName];
 
-        if(p._lastStepStatus){
-          for(const stepName of stepOrder){
-            const s = p._lastStepStatus[stepName];
-
-            if(s !== "bestanden"){
-              // use partial progress if available
-              if(p.steps && p.steps[stepName] && typeof p.steps[stepName].progress === "number"){
-                currentPartial = p.steps[stepName].progress / 100;
-              }
-              break;
-            }
+          if(step && typeof step.progress === "number"){
+            sumProgress += step.progress;
+          } else {
+            sumProgress += 0;
           }
-        }
+        });
 
-        // 🔥 FINAL CALC: full steps + partial current step
         let percent = 0;
-
         if(totalSteps > 0){
-          percent = Math.round(((completed + currentPartial) / totalSteps) * 100);
+          percent = Math.round(sumProgress / totalSteps);
         }
 
-        // clamp safety
         if(percent < 0) percent = 0;
         if(percent > 100) percent = 100;
 
@@ -295,8 +286,6 @@ function startRealtime(){
                 }))
           : "-";
 
-        const steps = p.steps || null;
-
         // 🔹 Always render all main steps (from config), even if no data yet
         substepsHTML = `<div class="substep-block">`;
 
@@ -304,21 +293,10 @@ function startRealtime(){
           const step = steps && steps[stepName] ? steps[stepName] : null;
           let stepPercent = 0;
 
-          // 🔥 PRIMARY SOURCE: _lastStepStatus (from Firestore root doc)
-          if(p._lastStepStatus && p._lastStepStatus[stepName]){
-            const s = p._lastStepStatus[stepName];
-
-            if(s === "bestanden"){
-              stepPercent = 100;
-            } else if(s === "nicht bestanden"){
-              stepPercent = 0;
-            } else {
-              stepPercent = 0;
-            }
-          }
-          // 🔥 FALLBACK: legacy steps field (if ever present)
-          else if(step && typeof step.progress === 'number'){
+          if(step && typeof step.progress === 'number'){
             stepPercent = step.progress;
+          } else {
+            stepPercent = 0;
           }
 
           if(stepPercent < 0) stepPercent = 0;
