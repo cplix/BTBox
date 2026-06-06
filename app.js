@@ -68,7 +68,6 @@ if (!id) {
   throw new Error("Missing id");
 }
 
-let role = null;
 let selectedCadIndex = 0;
 let cachedSources = null;
 const contentDiv = document.getElementById("content");
@@ -221,13 +220,6 @@ function showToast(message, type="success"){
 }
 
 
-function selectRole(r){
-  role=r;
-  document.getElementById("roleSelection").style.display="none";
-  contentDiv.style.display="block";
-  contentDiv.scrollIntoView({ behavior: "smooth" });
-  startApp();
-}
 
 
 // =========================================================
@@ -510,24 +502,20 @@ async function loadProductData(){
 // =========================================================
 // 🔄 PROCESS / WORKFLOW LOGIC (FIRESTORE)
 // =========================================================
-function isStepUnlocked(stepId,data){
+function isStepUnlocked(stepId, data) {
   const i = stepOrder.indexOf(stepId);
-  if(i===0) return true;
-  return data[stepOrder[i-1]]?.status==="bestanden";
+  if (i === 0) return true;
+  const prev = data[stepOrder[i - 1]];
+  if (!prev) return false;
+  const subs = prev.substeps || {};
+  const cfg = subStepsConfig[stepOrder[i - 1]] || [];
+  return cfg.every(c => subs[c.id] === true);
 }
 
 
 async function initSteps(){
   const productRef = db.collection("products").doc(id);
   await productRef.set({created:true},{merge:true});
-
-  // === PART B: Write minimal product snapshot fields on init (one-time)
-  await productRef.set({
-    _completed: 0,
-    _total: stepOrder.length - 1,
-    _endDone: false,
-    _lastStepStatus: {}
-  }, { merge: true });
 
   await Promise.all(stepOrder.map(async step => {
     const ref = productRef.collection("steps").doc(step);
@@ -560,10 +548,6 @@ function processSnapshot(snap){
 
   let html="";
 
-  if(role==="pruefung"){
-    html += `<div class="mode-text">🔍 Prüfmodus aktiv</div>`;
-  }
-
   const orderedDocs = stepOrder.map(stepName =>
     snap.docs.find(d => d.id === stepName)
   ).filter(Boolean);
@@ -586,9 +570,8 @@ function processSnapshot(snap){
     const percent = Math.round((done / total) * 100);
     const status = getStatus(step, allDone, stepId, allStepsData);
     const isEndabnahme = stepId === "Endabnahme";
-    const isLocked = isEndabnahme && role !== "pruefung";
     const lockIcon = isEndabnahme
-      ? (isLocked ? "🔒" : "🔓")
+      ? ("🔒")
       : "";
     let subHTML = `<div class="substeps-inline">`;
 
@@ -599,7 +582,7 @@ function processSnapshot(snap){
         <div class="substep-item">
           <input type="checkbox"
             ${val?"checked":""}
-            ${(!unlocked || role==="pruefung" || stepId==="Endabnahme")?"disabled":""}
+            ${(!unlocked || stepId==="Endabnahme")?"disabled":""}
             onchange="toggleSub('${stepId}')">
           <span>${item.label}</span>
         </div>
@@ -652,8 +635,6 @@ html += `
 }
 
 async function toggleSub(stepId){
-  if(role==="pruefung") return;
-
   const ref = db.collection("products").doc(id)
     .collection("steps").doc(stepId);
 
@@ -671,51 +652,6 @@ async function toggleSub(stepId){
   await ref.update({ substeps: sub });
 }
 
-async function saveStep(stepId){
-
-  if(role!=="pruefung") return alert("Nur Prüfung darf Status setzen");
-
-  const user=document.getElementById("user_"+stepId).value.trim();
-  const status=document.getElementById("status_"+stepId).value;
-
-  if(!user) return alert("Bitte Namen eingeben!");
-
-  const time=new Date().toLocaleString();
-
-  const ref=db.collection("products").doc(id)
-    .collection("steps").doc(stepId);
-
-
-  await ref.update({
-    status,
-    last_update:time,
-    last_user:user
-  });
-
-  await ref.collection("history").add({
-    user,
-    timestamp:time,
-    status,
-    role,
-    action:"Status geändert"
-  });
-
-  const btn = document.querySelector(`button[onclick="saveStep('${stepId}')"]`);
-
-  if(btn){
-    const original = btn.innerText;
-
-    btn.innerText = "✔ Gespeichert";
-    btn.disabled = true;
-
-    setTimeout(()=>{
-      btn.innerText = original;
-      btn.disabled = false;
-    }, 2000);
-  }
-
-  showToast("✔ Gespeichert");
-}
 
 
 async function syncSnapshotToFirestore(sources){
