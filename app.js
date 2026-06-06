@@ -160,26 +160,30 @@ function isVisible(key){
 
 function getStatus(step, allDone, stepId, allStepsData){
 
-  // 🔹 Endabnahme Sonderlogik
+  const hasProgress = Object.values(step.substeps || {}).some(v => v);
+
+  // 🔹 Endabnahme Sonderlogik (nur Freigabe abhängig von vorherigen Steps)
   if(stepId === "Endabnahme"){
 
     const readyForApproval = stepOrder
       .filter(s => s !== "Endabnahme")
-      .every(s => allStepsData[s]?.status === "bestanden");
+      .every(s => {
+        const st = allStepsData[s];
+        if(!st) return false;
+        const subs = st.substeps || {};
+        const cfg = subStepsConfig[s] || [];
+        return cfg.every(c => subs[c.id] === true);
+      });
 
-    if(step.status === "bestanden") return "done";
-
+    if(allDone) return "done";
     if(readyForApproval) return "ready";
-
-    if(Object.values(step.substeps || {}).some(v=>v)) return "progress";
-
+    if(hasProgress) return "progress";
     return "empty";
   }
 
-  // 🔹 Standard
-  if(step.status === "bestanden") return "done";
-  if(allDone) return "ready";
-  if(Object.values(step.substeps || {}).some(v=>v)) return "progress";
+  // 🔹 Standard (rein aus Substeps)
+  if(allDone) return "done";
+  if(hasProgress) return "progress";
   return "empty";
 }
 
@@ -631,27 +635,10 @@ html += `
 
   ${subHTML}
 
-  ${(allDone && step.status !== "bestanden")
-    ? `<div class="ready-text">✔ bereit zur Prüfung</div>`
-    : ""}
+  ${allDone ? `<div class="ready-text">✔ bereit zur Prüfung</div>` : ""}
 
   <div class="actions-row">
-    <input id="user_${stepId}" placeholder="Name"
-      ${(!unlocked || role!=="pruefung")?"disabled":""}>
-
-    <select id="status_${stepId}"
-      ${(!unlocked || role!=="pruefung")?"disabled":""}>
-      <option value="nicht bestanden" ${!allDone ? "selected" : ""}>nicht bestanden</option>
-      <option value="bestanden" ${allDone ? "" : "disabled"}>bestanden</option>
-    </select>
-
-  <button class="btn-primary ${allDone ? "ready" : ""}"
-    onclick="saveStep('${stepId}')"
-    ${(!unlocked || role!=="pruefung")?"disabled":""}>
-    📤 Speichern
-  </button>
-
-    <button onclick="toggleHistory('${stepId}')">📜</button>
+    <button onclick="toggleHistory('${stepId}')">📜 Verlauf</button>
   </div>
 
   <div id="hist_${stepId}" class="history">Lade...</div>
