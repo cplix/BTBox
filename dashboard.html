@@ -207,13 +207,6 @@ function getStatusBadge(status){
   return `<span class="badge badge-red">nicht begonnen</span>`;
 }
 
-function getQualityBadge(released){
-
-  return released
-    ? `<span class="badge badge-green">freigegeben</span>`
-    : `<span class="badge badge-red">nicht freigegeben</span>`;
-}
-
 
 // =====================================================
 // 🎨 RENDER LAYER (DOM)
@@ -260,8 +253,6 @@ function startRealtime(){
         if(percent < 0) percent = 0;
         if(percent > 100) percent = 100;
 
-        const total = Number(p._total) || 0;
-
         const percentLabel = percent === 0 ? "" : percent + "%";
         let status = "empty";
 
@@ -272,8 +263,7 @@ function startRealtime(){
         } else {
           status = "empty";
         }
-        const released = p.released || false;
-        const lastUser = p.last_user || "keine Aktivität";
+        const lastUser = "-";
         const lastUpdate = p.last_update
           ? (p.last_update.toDate
               ? p.last_update.toDate().toLocaleString("de-DE", {
@@ -335,12 +325,7 @@ function startRealtime(){
               ${getStatusBadge(status)}
             </div>
 
-            <div style="margin-top:5px;">
-              ${getQualityBadge(released)}
-            </div>
-
             <div class="activity">
-              👤 ${lastUser}<br>
               🕒 ${lastUpdate}
             </div>
 
