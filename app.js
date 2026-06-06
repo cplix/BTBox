@@ -157,49 +157,20 @@ function isVisible(key){
   return displayConfig[key]?.show !== false;
 }
 
-function getStatus(step, allDone, stepId, allStepsData){
 
-  const hasProgress = Object.values(step.substeps || {}).some(v => v);
-
-  // 🔹 Endabnahme Sonderlogik (nur Freigabe abhängig von vorherigen Steps)
-  if(stepId === "Endabnahme"){
-
-    const readyForApproval = stepOrder
-      .filter(s => s !== "Endabnahme")
-      .every(s => {
-        const st = allStepsData[s];
-        if(!st) return false;
-        const subs = st.substeps || {};
-        const cfg = subStepsConfig[s] || [];
-        return cfg.every(c => subs[c.id] === true);
-      });
-
-    if(allDone) return "done";
-    if(readyForApproval) return "ready";
-    if(hasProgress) return "progress";
-    return "empty";
-  }
-
-  // 🔹 Standard (rein aus Substeps)
-  if(allDone) return "done";
-  if(hasProgress) return "progress";
+function getProgressClass(percent){
+  if(percent === 100) return "done";
+  if(percent > 0) return "progress";
   return "empty";
 }
 
-function getStatusBadge(status){
-
-  if(status === "done"){
+function getProgressBadge(percent){
+  if(percent === 100){
     return `<span class="badge badge-green">✔ bestanden</span>`;
   }
-
-  if(status === "ready"){
-    return `<span class="badge badge-yellow">bereit zur Prüfung</span>`;
-  }
-
-  if(status === "progress"){
+  if(percent > 0){
     return `<span class="badge badge-blue">in Arbeit</span>`;
   }
-
   return `<span class="badge badge-red">nicht begonnen</span>`;
 }
 
@@ -561,11 +532,10 @@ function processSnapshot(snap){
       substeps[item.id] = step.substeps?.[item.id] ?? false;
     });
 
-    const allDone = Object.values(substeps).every(v=>v);
     const total = Object.keys(substeps).length;
     const done = Object.values(substeps).filter(v=>v).length;
     const percent = Math.round((done / total) * 100);
-    const status = getStatus(step, allDone, stepId, allStepsData);
+    const statusClass = getProgressClass(percent);
     const isEndabnahme = stepId === "Endabnahme";
     const lockIcon = isEndabnahme
       ? ("🔒")
@@ -599,12 +569,12 @@ html += `
 
     <div class="progress-container">
       <div class="progress-bar">
-        <div class="progress-fill ${status}" style="width:${percent}%"></div>
+        <div class="progress-fill ${statusClass}" style="width:${percent}%"></div>
       </div>
       <div class="progress-text">${percent}%</div>
     </div>
 
-    ${getStatusBadge(status)}
+    ${getProgressBadge(percent)}
   </div>
 
   <div class="step-meta">
