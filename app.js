@@ -835,10 +835,9 @@ async function toggleHistory(stepId){
 initSteps();
 loadProductName();
 loadProductData();
+startApp();
 
-function startApp(){
-  listenSteps();
-}
+listenSteps();
 
 // === PART C: Expose Firestore-only listener entry (for dashboard usage)
 // Firestore-only product listener (for dashboard or header widgets)
@@ -851,7 +850,7 @@ function listenProductDoc(callback){
     });
 }
 
-contentDiv.style.display="none";
+contentDiv.style.display="block";
 function changeCadComponent(index){
   selectedCadIndex = parseInt(index);
 
