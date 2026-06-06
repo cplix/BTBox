@@ -832,12 +832,12 @@ async function toggleHistory(stepId){
 // 🚀 APPLICATION STARTUP
 // =========================================================
 // START
-initSteps();
+initSteps().then(() => {
+  listenSteps();
+});
+
 loadProductName();
 loadProductData();
-startApp();
-
-listenSteps();
 
 // === PART C: Expose Firestore-only listener entry (for dashboard usage)
 // Firestore-only product listener (for dashboard or header widgets)
