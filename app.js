@@ -682,41 +682,6 @@ async function toggleSub(stepId){
   }
 
   await ref.update({ substeps: sub });
-
-  // 🔥 NEW: sofort Progress berechnen und in Firestore spiegeln
-  try {
-    const config = subStepsConfig[stepId] || [];
-
-    let totalSubs = 0;
-    let doneSubs = 0;
-
-    config.forEach(s => {
-      totalSubs++;
-      if(sub[s.id] === true) doneSubs++;
-    });
-
-    const stepProgress = totalSubs > 0
-      ? Math.round((doneSubs / totalSubs) * 100)
-      : 0;
-
-    const productRef = db.collection("products").doc(id);
-    const productSnap = await productRef.get();
-    const productData = productSnap.exists ? productSnap.data() : {};
-
-    await productRef.set({
-      steps: {
-        ...(productData.steps || {}),
-        [stepId]: {
-          ...(productData.steps?.[stepId] || {}),
-          progress: stepProgress,
-          substeps: sub
-        }
-      }
-    }, { merge: true });
-
-  } catch(e){
-    console.warn("toggleSub progress sync failed", e);
-  }
 }
 
 async function saveStep(stepId){
@@ -734,127 +699,11 @@ async function saveStep(stepId){
     .collection("steps").doc(stepId);
 
 
-// =====================================================
-// 🔥 Produkt-Aggregation für Dashboard
-// =====================================================
   await ref.update({
     status,
     last_update:time,
     last_user:user
   });
-
-
-  // =====================================================
-  // 🔥 Produkt-Aggregation für Dashboard (INCREMENTAL, no full collection read)
-  // =====================================================
-  try {
-    const productRef = db.collection("products").doc(id);
-    const productSnap = await productRef.get();
-    const productData = productSnap.exists ? productSnap.data() : {};
-
-    // previous aggregates (fallbacks)
-    let progress = productData.progress || 0;
-    let globalStatus = productData.status || "empty";
-    let released = productData.released || false;
-
-    // compute flags from current step update only
-    const isEnd = stepId === "Endabnahme";
-    const isDone = status === "bestanden";
-
-    // maintain counters in product doc
-    let completed = productData._completed || 0;
-    const total = productData._total || (stepOrder.length - 1); // exclude Endabnahme
-
-    if(!isEnd){
-      // adjust completed counter if status changed
-      const prevStatus = productData._lastStepStatus?.[stepId];
-      if(prevStatus !== "bestanden" && isDone) completed++;
-      if(prevStatus === "bestanden" && !isDone) completed--;
-    }
-
-    progress = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-    if(progress === 100 && (isEnd && isDone || productData._endDone)){
-      globalStatus = "done";
-    } else if(progress > 0){
-      globalStatus = "progress";
-    } else {
-      globalStatus = "empty";
-    }
-
-    if(isEnd){
-      released = isDone;
-    }
-
-    // persist lightweight snapshot for dashboard (NO extra reads needed there)
-    await productRef.set({
-      progress,
-      status: globalStatus,
-      released,
-      last_update: time,
-      last_user: user,
-
-      // internal counters (avoid collection scans)
-      _completed: completed,
-      _total: total,
-      _endDone: isEnd ? isDone : (productData._endDone || false),
-      _lastStepStatus: {
-        ...(productData._lastStepStatus || {}),
-        [stepId]: status
-      }
-    }, { merge: true });
-
-    // =====================================================
-    // 🔹 Steps Snapshot für Dashboard (leichtgewichtig)
-    // =====================================================
-
-    const stepProgress = await (async () => {
-      if(!stepOrder.includes(stepId)) return 0;
-
-      const config = subStepsConfig[stepId] || [];
-      const stepDoc = await ref.get();
-      const stepData = stepDoc.data() || {};
-      const subs = stepData.substeps || {};
-
-      const totalSubs = Object.keys(subs).length;
-      const doneSubs = Object.values(subs).filter(v => v).length;
-
-      return totalSubs > 0 ? Math.round((doneSubs / totalSubs) * 100) : 0;
-    })();
-
-    await productRef.set({
-      progress,
-      status: globalStatus,
-      released,
-      last_update: time,
-      last_user: user,
-
-      // internal counters (avoid collection scans)
-      _completed: completed,
-      _total: total,
-      _endDone: isEnd ? isDone : (productData._endDone || false),
-      _lastStepStatus: {
-        ...(productData._lastStepStatus || {}),
-        [stepId]: status
-      },
-
-      // 🔹 Steps Snapshot
-      steps: {
-        ...(productData.steps || {}),
-        [stepId]: {
-          progress: stepProgress,
-          status: status,
-
-          // 🔥 FIX: Substeps als Objekt speichern (konsistent mit App)
-          substeps: subs
-        }
-      }
-    }, { merge: true });
-
-  } catch(e){
-    console.warn("Aggregation failed", e);
-  }
-
 
   await ref.collection("history").add({
     user,
