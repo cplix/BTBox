@@ -9,17 +9,6 @@ body {
 }
 
 /* =========================================================
-   LAYOUT
-   ========================================================= */
-
-.card {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 900px;
-}
-
-/* =========================================================
    DATA GRID (Produktdaten)
    ========================================================= */
 
@@ -49,10 +38,6 @@ body {
   background: #f9fafb;
 }
 
-.manufacturing-grid .data-card {
-  background: #f4f8fb;
-}
-
 .data-card b {
   display: inline-block;
   min-width: 100px;
@@ -71,10 +56,7 @@ body {
   margin-bottom: 10px;
 }
 
-.product-grid {
-  grid-template-columns: 1fr;
-}
-
+.product-grid,
 .manufacturing-grid {
   grid-template-columns: 1fr;
 }
@@ -167,12 +149,6 @@ button:not(.btn-primary):hover {
   color: #27ae60;
   font-weight: bold;
   margin-top: 5px;
-}
-
-.mode-text {
-  color: #2980b9;
-  font-weight: bold;
-  margin-bottom: 10px;
 }
 
 .warning {
