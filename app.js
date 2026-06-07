@@ -578,7 +578,12 @@ html += `
   </div>
 
   <div class="step-meta">
-    ${step.last_update||"-"} / ${step.last_user||"-"}
+    Letzte Änderung: ${step.last_update
+      ? new Date(step.last_update).toLocaleString("de-DE", {
+          dateStyle: "short",
+          timeStyle: "short"
+        })
+      : "-"}
   </div>
 
   ${!unlocked ? "<div class='warning'>Schritt gesperrt</div>" : ""}
