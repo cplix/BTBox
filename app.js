@@ -98,7 +98,7 @@ const subStepsConfig = {
 
   "Endmontage": [
     { id:"em_01", label:"Montage auf Komponentenplatine" },
-    { id:"em_02", label:"Montage Gehäuse/Deckel" },
+    { id:"em_02", label:"Montage in Gehäuse/Deckel" },
     { id:"em_03", label:"Elektrische Anschlussarbeiten" },
     { id:"em_04", label:"Funktionskontrolle 1" },
     { id:"em_05", label:"Zusammenbau" },
