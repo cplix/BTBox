@@ -35,6 +35,11 @@ body {
   overflow: hidden;
 }
 
+.product-grid .data-card,
+.manufacturing-grid .data-card {
+  font-size: 115%;
+}
+
 /* 🔹 Produkt vs Fertigung visuell trennen */
 .product-grid .data-card {
   background: #f9fafb;
