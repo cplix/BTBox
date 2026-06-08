@@ -85,8 +85,9 @@ const subStepsConfig = {
   ],
 
   "Fertigung": [
-    { id:"f_01", label:"3D-Druck" },
-    { id:"f_02", label:"CNC-Bearbeitung" }
+    { id:"f_01", label:"Arbeitsvorbereitung" },
+    { id:"f_02", label:"3D-Druck" },
+    { id:"f_03", label:"CNC-Bearbeitung" }
   ],
 
   "Vormontage": [
@@ -578,12 +579,14 @@ html += `
   </div>
 
   <div class="step-meta">
-    Letzte Änderung: ${step.last_update
-      ? new Date(step.last_update).toLocaleString("de-DE", {
-          dateStyle: "short",
-          timeStyle: "short"
-        })
-      : "-"}
+    Letzte Änderung: ${(() => {
+      if(!step.last_update) return "-";
+      const d = new Date(step.last_update);
+      return isNaN(d.getTime()) ? step.last_update : d.toLocaleString("de-DE", {
+        dateStyle: "short",
+        timeStyle: "short"
+      });
+    })()}
   </div>
 
   ${!unlocked ? "<div class='warning'>Schritt gesperrt</div>" : ""}
