@@ -551,7 +551,7 @@ function processSnapshot(snap){
           <input type="checkbox"
             ${val?"checked":""}
             ${(!unlocked || stepId==="Endabnahme")?"disabled":""}
-            onchange="toggleSub('${stepId}')">
+            onchange="toggleSub('${stepId}', '${item.id}', this.checked)">
           <span>${item.label}</span>
         </div>
       `;
@@ -582,10 +582,16 @@ html += `
     Letzte Änderung: ${(() => {
       if(!step.last_update) return "-";
       const d = new Date(step.last_update);
-      return isNaN(d.getTime()) ? step.last_update : d.toLocaleString("de-DE", {
-        dateStyle: "short",
-        timeStyle: "short"
-      });
+      const dateStr = isNaN(d.getTime())
+        ? step.last_update
+        : d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
+
+      if(step.last_substep){
+        const label = (subStepsConfig[stepId] || []).find(s => s.id === step.last_substep)?.label;
+        return label ? `${dateStr} (${label})` : dateStr;
+      }
+
+      return dateStr;
     })()}
   </div>
 
@@ -601,22 +607,21 @@ html += `
   contentDiv.innerHTML=html;
 }
 
-async function toggleSub(stepId){
+async function toggleSub(stepId, subId, value){
   const ref = db.collection("products").doc(id)
     .collection("steps").doc(stepId);
 
-  const config = subStepsConfig[stepId];
-  const checkboxes = document.querySelectorAll(`input[onchange*="${stepId}"]`);
+  const snap = await ref.get();
+  const data = snap.data() || {};
+  const sub = data.substeps || {};
 
-  const sub = {};
-  let i=0;
+  sub[subId] = value;
 
-  for(const cb of checkboxes){
-    sub[config[i].id] = cb.checked;
-    i++;
-  }
-
-  await ref.update({ substeps: sub });
+  await ref.update({ 
+    substeps: sub,
+    last_update: Date.now(),
+    last_substep: subId
+  });
 }
 
 
