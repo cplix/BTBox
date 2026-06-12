@@ -238,20 +238,22 @@ function startRealtime(){
           totalSteps++;
           const step = steps[stepName];
 
-          if(step && typeof step.progress === "number"){
-            sumProgress += step.progress;
+          if(step && step.substeps){
+            const subs = step.substeps;
+            const total = Object.keys(subs).length;
+            const done = Object.values(subs).filter(v => v).length;
+            const stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
+            sumProgress += stepPercent;
           } else {
             sumProgress += 0;
           }
         });
 
-        let percent = 0;
-        if(totalSteps > 0){
-          percent = Math.round(sumProgress / totalSteps);
-        }
+        let percent = totalSteps > 0
+          ? Math.round(sumProgress / totalSteps)
+          : 0;
 
-        if(percent < 0) percent = 0;
-        if(percent > 100) percent = 100;
+        percent = Math.max(0, Math.min(100, percent));
 
         const percentLabel = percent === 0 ? "" : percent + "%";
         let status = "empty";
@@ -277,20 +279,20 @@ function startRealtime(){
           : "-";
 
         // 🔹 Always render all main steps (from config), even if no data yet
-        substepsHTML = `<div class="substep-block">`;
+        let substepsHTML = `<div class="substep-block">`;
 
         stepOrder.forEach(stepName => {
           const step = steps && steps[stepName] ? steps[stepName] : null;
           let stepPercent = 0;
 
-          if(step && typeof step.progress === 'number'){
-            stepPercent = step.progress;
-          } else {
-            stepPercent = 0;
+          if(step && step.substeps){
+            const subs = step.substeps;
+            const total = Object.keys(subs).length;
+            const done = Object.values(subs).filter(v => v).length;
+            stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
           }
 
-          if(stepPercent < 0) stepPercent = 0;
-          if(stepPercent > 100) stepPercent = 100;
+          stepPercent = Math.max(0, Math.min(100, stepPercent));
 
           substepsHTML += `
             <div style="min-width:120px;">
