@@ -1,7 +1,7 @@
 {
   "source": "Autodesk Fusion",
   "exportVersion": "1.1",
-  "exportedAt": "2026-06-13T08:29:41",
+  "exportedAt": "2026-06-13T09:01:11",
   "productId": "NWS2602-v3-00_BTBox-Platine",
   "designName": "NWS2602-v3-00_BTbox-Platine v90",
   "selectedComponent": {
@@ -59,8 +59,9 @@
     "cadStatus": "in Bearbeitung",
     "cadReleased": false,
     "screenshotFile": "fusion-export_Kabelklammer.png",
-    "screenshotOrientation": "isometric_top_right",
+    "screenshotOrientation": "active_view",
     "screenshotBackground": "white",
-    "screenshotCropPaddingPx": 42
+    "screenshotCropPaddingPx": 48,
+    "screenshotViewExtentsFactor": 1.35
   }
 }
