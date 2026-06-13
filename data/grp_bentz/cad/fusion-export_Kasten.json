@@ -1,9 +1,9 @@
 {
   "source": "Autodesk Fusion",
   "exportVersion": "1.1",
-  "exportedAt": "2026-06-03T19:58:22",
+  "exportedAt": "2026-06-13T08:14:36",
   "productId": "NWS2602-v3-00_BTBox-Platine",
-  "designName": "NWS2602-v3-00_BTbox-Platine v79",
+  "designName": "NWS2602-v3-00_BTbox-Platine v90",
   "selectedComponent": {
     "componentId": "NWS2602-v3-01-002_Kasten",
     "name": "Kasten",
@@ -18,17 +18,16 @@
       "name": "Kasten",
       "hinweis": "Variante 3",
       "materials": [
-        "Kunststoff",
-        "Stahl"
+        "Kunststoff"
       ],
-      "mass_g": 174.09,
-      "volume_cm3": 133.74,
+      "mass_g": 172.22,
+      "volume_cm3": 133.51,
       "boundingBox_mm": {
-        "length": 151.3,
-        "width": 72.3,
-        "height": 88.7
+        "length": 149.0,
+        "width": 71.0,
+        "height": 68.0
       },
-      "bodyCount": 7,
+      "bodyCount": 1,
       "cadStatus": "in Bearbeitung",
       "screenshot": "fusion-export_Kasten.png",
       "bodies": [
@@ -42,84 +41,17 @@
             "width": 71.0,
             "height": 68.0
           }
-        },
-        {
-          "bodyName": "Körper1",
-          "material": "Stahl",
-          "mass_g": 0.31,
-          "volume_cm3": 0.04,
-          "boundingBox_mm": {
-            "length": 4.6,
-            "width": 4.6,
-            "height": 5.7
-          }
-        },
-        {
-          "bodyName": "Körper1",
-          "material": "Stahl",
-          "mass_g": 0.31,
-          "volume_cm3": 0.04,
-          "boundingBox_mm": {
-            "length": 4.6,
-            "width": 4.6,
-            "height": 5.7
-          }
-        },
-        {
-          "bodyName": "Körper1",
-          "material": "Stahl",
-          "mass_g": 0.31,
-          "volume_cm3": 0.04,
-          "boundingBox_mm": {
-            "length": 4.6,
-            "width": 4.6,
-            "height": 5.7
-          }
-        },
-        {
-          "bodyName": "Körper1",
-          "material": "Stahl",
-          "mass_g": 0.31,
-          "volume_cm3": 0.04,
-          "boundingBox_mm": {
-            "length": 4.6,
-            "width": 4.6,
-            "height": 5.7
-          }
-        },
-        {
-          "bodyName": "Körper1",
-          "material": "Stahl",
-          "mass_g": 0.31,
-          "volume_cm3": 0.04,
-          "boundingBox_mm": {
-            "length": 4.6,
-            "width": 4.6,
-            "height": 5.7
-          }
-        },
-        {
-          "bodyName": "Körper1",
-          "material": "Stahl",
-          "mass_g": 0.31,
-          "volume_cm3": 0.04,
-          "boundingBox_mm": {
-            "length": 4.6,
-            "width": 4.6,
-            "height": 5.7
-          }
         }
       ]
     }
   ],
   "summary": {
     "componentCount": 1,
-    "bodyCount": 7,
-    "totalMass_g": 174.09,
-    "totalVolume_cm3": 133.74,
+    "bodyCount": 1,
+    "totalMass_g": 172.22,
+    "totalVolume_cm3": 133.51,
     "materials": [
-      "Kunststoff",
-      "Stahl"
+      "Kunststoff"
     ],
     "allMaterialsAssigned": true,
     "productIdAssigned": true,
