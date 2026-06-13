@@ -276,7 +276,7 @@ function renderProductCard(cadComponents, group){
 
   const cad = cadComponents[0];
 
-  const imagePath = `data/${id}/product.png`;
+  const imagePath = `data/${id}/fusion-export_assembly.png`;
 
   return `
     <div class="data-card">
