@@ -222,27 +222,37 @@ function getStatusBadge(status){
 function startRealtime(){
 
   db.collection("products")
-    .onSnapshot(snap => {
+    .onSnapshot(async snap => {
 
       let html = "";
 
-      snap.forEach(doc => {
+      for (const doc of snap.docs) {
 
         const p = doc.data();
 
-        // 🔥 filter: only show real product docs (skip legacy ids)
-        if(!p.product_name) return;
+        if(!p.product_name) continue;
 
         const pname = p.product_name || "Bluetooth-Box";
         const group = p.group_name || "";
 
-        const steps = p.steps || {};
+        // 🔥 FIX: load steps from subcollection
+        const stepsSnap = await db
+          .collection("products")
+          .doc(doc.id)
+          .collection("steps")
+          .get();
+
+        const steps = {};
+        stepsSnap.forEach(s => {
+          steps[s.id] = s.data();
+        });
 
         let totalSteps = 0;
         let sumProgress = 0;
 
         stepOrder.forEach(stepName => {
           totalSteps++;
+
           const step = steps[stepName];
 
           if(step && step.substeps){
@@ -250,9 +260,8 @@ function startRealtime(){
             const total = Object.keys(subs).length;
             const done = Object.values(subs).filter(v => v).length;
             const stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
+
             sumProgress += stepPercent;
-          } else {
-            sumProgress += 0;
           }
         });
 
@@ -263,16 +272,11 @@ function startRealtime(){
         percent = Math.max(0, Math.min(100, percent));
 
         const percentLabel = percent === 0 ? "" : percent + "%";
-        let status = "empty";
 
-        if(percent === 100){
-          status = "done";
-        } else if(percent > 0){
-          status = "progress";
-        } else {
-          status = "empty";
-        }
-        const lastUser = "-";
+        let status = "empty";
+        if(percent === 100) status = "done";
+        else if(percent > 0) status = "progress";
+
         const lastUpdate = p.last_update
           ? (p.last_update.toDate
               ? p.last_update.toDate().toLocaleString("de-DE", {
@@ -285,11 +289,11 @@ function startRealtime(){
                 }))
           : "-";
 
-        // 🔹 Always render all main steps (from config), even if no data yet
         let substepsHTML = `<div class="substep-block">`;
 
         stepOrder.forEach(stepName => {
-          const step = steps && steps[stepName] ? steps[stepName] : null;
+
+          const step = steps[stepName];
           let stepPercent = 0;
 
           if(step && step.substeps){
@@ -299,13 +303,16 @@ function startRealtime(){
             stepPercent = total > 0 ? Math.round((done / total) * 100) : 0;
           }
 
-          stepPercent = Math.max(0, Math.min(100, stepPercent));
-
           substepsHTML += `
             <div style="min-width:120px;">
               <div style="font-weight:bold; font-size:11px;">${stepName}</div>
               <div class="sub-bar">
-                <div class="sub-bar-inner" style="width:${stepPercent}%; background:${stepPercent === 100 ? '#27ae60' : stepPercent > 0 ? '#3498db' : '#e74c3c'};"></div>
+                <div class="sub-bar-inner"
+                  style="width:${stepPercent}%;
+                  background:${stepPercent === 100 ? '#27ae60'
+                    : stepPercent > 0 ? '#3498db'
+                    : '#e74c3c'};">
+                </div>
               </div>
             </div>
           `;
@@ -313,7 +320,9 @@ function startRealtime(){
 
         substepsHTML += `</div>`;
 
-        const groupClass = group ? `group-${group.replace("grp_", "").replace(/^[a-z]/, c => c.toUpperCase())}` : "";
+        const groupClass = group
+          ? `group-${group.replace("grp_", "").replace(/^[a-z]/, c => c.toUpperCase())}`
+          : "";
 
         html += `
           <div class="card ${groupClass}"
@@ -342,7 +351,7 @@ function startRealtime(){
 
           </div>
         `;
-      });
+      }
 
       listDiv.innerHTML = html || "Keine Produkte vorhanden.";
     });
