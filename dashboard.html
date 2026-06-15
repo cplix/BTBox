@@ -191,8 +191,7 @@ const db = firebase.firestore();
 
 // 🔥 Stabiler Firestore Transport (wie app.js)
 db.settings({
-  experimentalForceLongPolling: true,
-  useFetchStreams: false
+  experimentalAutoDetectLongPolling: true
 });
 
 firebase.firestore.setLogLevel('error');
