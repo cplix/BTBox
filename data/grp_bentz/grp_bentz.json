@@ -3,7 +3,7 @@
   "product_name": "Bluetooth-Box",
   "manufacturing": {
     "3d_print": {
-      "component": "Gehaeuse",
+      "component": "Kasten",
       "machine": "Prusa MK3s",
       "material": "PLA",
       "layer_height": "0.2 mm",
