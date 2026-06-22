@@ -464,22 +464,22 @@ async function loadProductData(){
 
         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:10px;">
 
-          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(0, this)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(0, this)">
             <div style="font-size:24px; text-align:center;">⚙️</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">CNC Parameter</div>
           </div>
 
-          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(1, this)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(1, this)">
             <div style="font-size:24px; text-align:center;">🛠️</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">Neues Werkzeug</div>
           </div>
 
-          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(2, this)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(2, this)">
             <div style="font-size:24px; text-align:center;">🧵</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">Perimeter-Test</div>
           </div>
 
-          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(3, this)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(3, this)">
             <div style="font-size:24px; text-align:center;">🧪</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">Oberfläche</div>
           </div>
@@ -531,7 +531,7 @@ function showOrderInfo(index, el){
   // 🔹 Active highlight setzen
   if(el){
     el.style.border = '2px solid #3498db';
-    el.style.boxShadow = '0 0 6px rgba(52,152,219,0.4)';
+    el.style.boxShadow = '0 4px 12px rgba(52,152,219,0.35)';
   }
 
   const detailEl = document.getElementById("orderDetails");
