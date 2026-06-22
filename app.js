@@ -462,33 +462,32 @@ async function loadProductData(){
       <div class="data-card">
         <div class="data-title">📋 Aufträge</div>
 
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:10px;">
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:10px;">
 
-          <div class="data-card" style="padding:10px;">
-            <div style="font-size:22px; text-align:center;">⚙️</div>
-            <div style="font-size:12px; text-align:center;">CNC Parameter testen</div>
+          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(0)">
+            <div style="font-size:24px; text-align:center;">⚙️</div>
+            <div style="font-size:13px; text-align:center; margin-top:6px;">CNC Parameter</div>
           </div>
 
-          <div class="data-card" style="padding:10px;">
-            <div style="font-size:22px; text-align:center;">🛠️</div>
-            <div style="font-size:12px; text-align:center;">Fräsversuch neues Werkzeug</div>
+          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(1)">
+            <div style="font-size:24px; text-align:center;">🛠️</div>
+            <div style="font-size:13px; text-align:center; margin-top:6px;">Neues Werkzeug</div>
           </div>
 
-          <div class="data-card" style="padding:10px;">
-            <div style="font-size:22px; text-align:center;">🧵</div>
-            <div style="font-size:12px; text-align:center;">Perimeter-Varianten testen</div>
+          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(2)">
+            <div style="font-size:24px; text-align:center;">🧵</div>
+            <div style="font-size:13px; text-align:center; margin-top:6px;">Perimeter-Test</div>
           </div>
 
-          <div class="data-card" style="padding:10px;">
-            <div style="font-size:22px; text-align:center;">🧪</div>
-            <div style="font-size:12px; text-align:center;">Oberflächengüte untersuchen</div>
+          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(3)">
+            <div style="font-size:24px; text-align:center;">🧪</div>
+            <div style="font-size:13px; text-align:center; margin-top:6px;">Oberfläche</div>
           </div>
 
-          <div class="data-card" style="padding:10px;">
-            <div style="font-size:22px; text-align:center;">🔊</div>
-            <div style="font-size:12px; text-align:center;">Akustik verbessern</div>
-          </div>
+        </div>
 
+        <div id="orderDetails" style="margin-top:14px; font-size:13px; color:#444;">
+          Auftrag auswählen für Details...
         </div>
       </div>
 
@@ -510,6 +509,24 @@ async function loadProductData(){
   }
 }
 
+
+// =========================================================
+// 📋 ORDER INFO UI LOGIC
+// =========================================================
+function showOrderInfo(index){
+
+  const details = [
+    "Analyse und Optimierung von Drehzahl, Vorschub und Zustellung beim CNC-Fräsen.",
+    "Erprobung eines neuen Fräswerkzeugs hinsichtlich Standzeit und Schnittqualität.",
+    "Vergleich verschiedener Perimeter-Anzahlen im 3D-Druck (Stabilität vs. Druckzeit).",
+    "Untersuchung der Oberflächengüte bei unterschiedlichen Druck- bzw. Fräsparametern."
+  ];
+
+  const el = document.getElementById("orderDetails");
+  if(el){
+    el.innerText = details[index] || "Keine Details verfügbar";
+  }
+}
 
 // =========================================================
 // 🔄 PROCESS / WORKFLOW LOGIC (FIRESTORE)
