@@ -457,36 +457,43 @@ async function loadProductData(){
 
     html += `<div class="section-title">📋 Auftragsdaten</div>`;
     html += `
-      <div class="data-grid">
-        <div class="data-card">
-          <div class="data-title">📋 Aufträge</div>
+    <div class="data-grid product-grid">
 
-          <div style="display:flex; gap:15px; justify-content:space-between; margin-top:10px;">
+      <div class="data-card">
+        <div class="data-title">📋 Aufträge</div>
 
-            <div style="text-align:center; width:100%;">
-              <div style="font-size:28px;">🔊</div>
-              <div style="font-size:12px;">Lautstärke-Optimierung</div>
-            </div>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:10px;">
 
-            <div style="text-align:center; width:100%;">
-              <div style="font-size:28px;">🔌</div>
-              <div style="font-size:12px;">USB-Anschluss anpassen</div>
-            </div>
-
-            <div style="text-align:center; width:100%;">
-              <div style="font-size:28px;">🧱</div>
-              <div style="font-size:12px;">Gehäuse verstärken</div>
-            </div>
-
-            <div style="text-align:center; width:100%;">
-              <div style="font-size:28px;">🎵</div>
-              <div style="font-size:12px;">Akustik verbessern</div>
-            </div>
-
+          <div class="data-card" style="padding:10px;">
+            <div style="font-size:22px; text-align:center;">⚙️</div>
+            <div style="font-size:12px; text-align:center;">CNC Parameter testen</div>
           </div>
+
+          <div class="data-card" style="padding:10px;">
+            <div style="font-size:22px; text-align:center;">🛠️</div>
+            <div style="font-size:12px; text-align:center;">Fräsversuch neues Werkzeug</div>
+          </div>
+
+          <div class="data-card" style="padding:10px;">
+            <div style="font-size:22px; text-align:center;">🧵</div>
+            <div style="font-size:12px; text-align:center;">Perimeter-Varianten testen</div>
+          </div>
+
+          <div class="data-card" style="padding:10px;">
+            <div style="font-size:22px; text-align:center;">🧪</div>
+            <div style="font-size:12px; text-align:center;">Oberflächengüte untersuchen</div>
+          </div>
+
+          <div class="data-card" style="padding:10px;">
+            <div style="font-size:22px; text-align:center;">🔊</div>
+            <div style="font-size:12px; text-align:center;">Akustik verbessern</div>
+          </div>
+
         </div>
       </div>
-    `;
+
+    </div>
+  `;
 
     html += `<div class="section-title">🛠 Fertigungsdaten</div>`;
     html += `<div class="data-grid manufacturing-grid">`;
