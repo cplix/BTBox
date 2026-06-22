@@ -464,22 +464,22 @@ async function loadProductData(){
 
         <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:10px;">
 
-          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(0)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(0, this)">
             <div style="font-size:24px; text-align:center;">⚙️</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">CNC Parameter</div>
           </div>
 
-          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(1)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(1, this)">
             <div style="font-size:24px; text-align:center;">🛠️</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">Neues Werkzeug</div>
           </div>
 
-          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(2)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(2, this)">
             <div style="font-size:24px; text-align:center;">🧵</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">Perimeter-Test</div>
           </div>
 
-          <div class="data-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(3)">
+          <div class="data-card order-card" style="padding:14px; cursor:pointer;" onclick="showOrderInfo(3, this)">
             <div style="font-size:24px; text-align:center;">🧪</div>
             <div style="font-size:13px; text-align:center; margin-top:6px;">Oberfläche</div>
           </div>
@@ -513,7 +513,7 @@ async function loadProductData(){
 // =========================================================
 // 📋 ORDER INFO UI LOGIC
 // =========================================================
-function showOrderInfo(index){
+function showOrderInfo(index, el){
 
   const details = [
     "Analyse und Optimierung von Drehzahl, Vorschub und Zustellung beim CNC-Fräsen.",
@@ -522,9 +522,21 @@ function showOrderInfo(index){
     "Untersuchung der Oberflächengüte bei unterschiedlichen Druck- bzw. Fräsparametern."
   ];
 
-  const el = document.getElementById("orderDetails");
+  // 🔹 Active highlight reset
+  document.querySelectorAll('.order-card').forEach(c => {
+    c.style.border = '1px solid #ddd';
+    c.style.boxShadow = 'none';
+  });
+
+  // 🔹 Active highlight setzen
   if(el){
-    el.innerText = details[index] || "Keine Details verfügbar";
+    el.style.border = '2px solid #3498db';
+    el.style.boxShadow = '0 0 6px rgba(52,152,219,0.4)';
+  }
+
+  const detailEl = document.getElementById("orderDetails");
+  if(detailEl){
+    detailEl.innerText = details[index] || "Keine Details verfügbar";
   }
 }
 
