@@ -462,26 +462,31 @@ async function loadProductData(){
       <div class="data-card">
         <div class="data-title">📋 Aufträge</div>
 
-        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-top:10px;">
+        <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:14px; margin-top:10px;">
 
           <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(0, this)">
-            <div style="font-size:24px; text-align:center;">⚙️</div>
-            <div style="font-size:13px; text-align:center; margin-top:6px;">CNC Parameter</div>
+            <div style="font-size:26px; text-align:center;">⚙️</div>
+            <div style="font-size:14.5px; text-align:center; margin-top:6px;">CNC Parameter</div>
           </div>
 
           <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(1, this)">
-            <div style="font-size:24px; text-align:center;">🛠️</div>
-            <div style="font-size:13px; text-align:center; margin-top:6px;">Neues Werkzeug</div>
+            <div style="font-size:26px; text-align:center;">🛠️</div>
+            <div style="font-size:14.5px; text-align:center; margin-top:6px;">Neues Werkzeug</div>
           </div>
 
           <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(2, this)">
-            <div style="font-size:24px; text-align:center;">🧵</div>
-            <div style="font-size:13px; text-align:center; margin-top:6px;">Perimeter-Test</div>
+            <div style="font-size:26px; text-align:center;">🧵</div>
+            <div style="font-size:14.5px; text-align:center; margin-top:6px;">Perimeter-Test</div>
           </div>
 
           <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(3, this)">
-            <div style="font-size:24px; text-align:center;">🧪</div>
-            <div style="font-size:13px; text-align:center; margin-top:6px;">Oberfläche</div>
+            <div style="font-size:26px; text-align:center;">🧪</div>
+            <div style="font-size:14.5px; text-align:center; margin-top:6px;">Oberfläche</div>
+          </div>
+
+          <div class="data-card order-card" style="padding:14px; cursor:pointer; border:1px solid #ddd; transition:all 0.2s ease;" onmouseenter="this.style.transform='translateY(-3px)'; this.style.boxShadow='0 4px 10px rgba(0,0,0,0.1)'" onmouseleave="this.style.transform='none'; this.style.boxShadow='none'" onclick="showOrderInfo(4, this)">
+            <div style="font-size:26px; text-align:center;">🔊</div>
+            <div style="font-size:14.5px; text-align:center; margin-top:6px;">Akustik</div>
           </div>
 
         </div>
@@ -519,7 +524,8 @@ function showOrderInfo(index, el){
     "Analyse und Optimierung von Drehzahl, Vorschub und Zustellung beim CNC-Fräsen.",
     "Erprobung eines neuen Fräswerkzeugs hinsichtlich Standzeit und Schnittqualität.",
     "Vergleich verschiedener Perimeter-Anzahlen im 3D-Druck (Stabilität vs. Druckzeit).",
-    "Untersuchung der Oberflächengüte bei unterschiedlichen Druck- bzw. Fräsparametern."
+    "Untersuchung der Oberflächengüte bei unterschiedlichen Druck- bzw. Fräsparametern.",
+    "Maßnahmen zur Verbesserung der Akustik durch Gehäuseanpassung und Materialwahl."
   ];
 
   // 🔹 Active highlight reset
